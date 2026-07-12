@@ -2,7 +2,7 @@
 
 An interactive, in-browser SQL learning app — 10 progressive lessons (SELECT through window functions), a real SQLite engine running client-side via [sql.js](https://github.com/sql-js/sql.js) (SQLite compiled to WebAssembly), and auto-checked exercises. No backend, no signup, no data leaves your browser.
 
-**Live demo:** _add your GitHub Pages link here after deploying_
+**Live demo:** https://xelessar.github.io/sql-trainer/
 
 ## Why this exists
 
