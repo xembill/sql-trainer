@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL Trainer — Learn SQL by Doing</title>
+<meta name="description" content="An interactive, in-browser SQL trainer. 10 progressive lessons, a real SQLite engine (sql.js/WASM), auto-checked exercises. No backend, no signup.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%97%83%EF%B8%8F</text></svg>">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link id="cm-theme-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1e2230; --border:#2a2f3d;
+    --text:#e6e8ef; --muted:#8b90a3; --accent:#5b8cff; --accent2:#8b6bff; --good:#3ecf8e; --bad:#ff5c7c;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f6fa; --panel:#ffffff; --panel2:#f0f1f6; --border:#dcdfe8;
+    --text:#1b1e27; --muted:#5b5f6e; --accent:#3b6fe0; --accent2:#7c5cff; --good:#1f9d63; --bad:#d8355a;
+  }
+  *{box-sizing:border-box;}
+  html,body{ height:100%; }
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    display:flex; height:100vh; overflow:hidden;
+    transition:background .2s,color .2s;
+  }
+  a{ color:var(--accent); }
+
+  /* ---------- sidebar ---------- */
+  #sidebar{
+    width:270px; flex:0 0 270px; background:var(--panel); border-right:1px solid var(--border);
+    overflow-y:auto; padding:18px 0; display:flex; flex-direction:column;
+  }
+  #brand{ padding:0 18px 4px; }
+  #brand h1{ font-size:16px; margin:0; letter-spacing:.3px; display:flex; align-items:center; gap:8px; }
+  #brand h1 span.grad{
+    background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text;
+    background-clip:text; color:transparent; font-weight:800;
+  }
+  #brand p{ margin:4px 0 16px; font-size:11.5px; color:var(--muted); }
+
+  #progress-bar-track{ height:6px; margin:0 18px 16px; background:var(--panel2); border-radius:99px; overflow:hidden; }
+  #progress-bar-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .35s ease; }
+
+  #lesson-list{ flex:1; }
+  .lesson-item{
+    padding:10px 18px; cursor:pointer; font-size:13.5px; color:var(--muted);
+    border-left:3px solid transparent; display:flex; align-items:center; gap:10px;
+    transition:background .12s,color .12s;
+  }
+  .lesson-item:hover{ background:var(--panel2); color:var(--text); }
+  .lesson-item.active{ border-left-color:var(--accent); background:var(--panel2); color:var(--text); font-weight:600; }
+  .lesson-item .num{ flex:1; }
+  .lesson-item .tag{
+    font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; padding:2px 6px; border-radius:99px;
+    color:var(--muted); border:1px solid var(--border); flex:0 0 auto;
+  }
+  .tag.beginner{ color:var(--good); border-color:var(--good); }
+  .tag.intermediate{ color:var(--accent); border-color:var(--accent); }
+  .tag.advanced{ color:var(--accent2); border-color:var(--accent2); }
+  .check{
+    width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border);
+    flex:0 0 16px; font-size:10px; display:flex; align-items:center; justify-content:center; color:transparent;
+  }
+  .check.done{ background:var(--good); border-color:var(--good); color:#fff; }
+
+  #sidebar-footer{ padding:12px 18px 0; border-top:1px solid var(--border); margin-top:10px; }
+  #sidebar-footer a{ font-size:12px; color:var(--muted); text-decoration:none; }
+  #sidebar-footer a:hover{ color:var(--accent); }
+  #reset-btn{ font-size:11.5px; color:var(--muted); background:none; border:none; cursor:pointer; padding:8px 0; }
+  #reset-btn:hover{ color:var(--bad); }
+
+  /* ---------- main ---------- */
+  #main{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  #topbar{
+    padding:14px 24px; border-bottom:1px solid var(--border); display:flex;
+    justify-content:space-between; align-items:center; background:var(--panel);
+  }
+  #lesson-title{ font-weight:700; font-size:15px; }
+  #topbar-right{ display:flex; align-items:center; gap:14px; }
+  #progress-label{ font-size:13px; color:var(--muted); }
+  #theme-toggle{
+    background:var(--panel2); border:1px solid var(--border); color:var(--text);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #content{ flex:1; overflow-y:auto; padding:24px; max-width:920px; }
+
+  .concept{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px;
+    margin-bottom:18px; line-height:1.55; font-size:14.5px; animation:fadein .25s ease;
+  }
+  .concept h2{ margin:0 0 8px; font-size:19px; }
+  .concept code{ background:var(--panel2); padding:2px 6px; border-radius:4px; font-size:13px; }
+  .concept pre{ background:var(--panel2); padding:10px 14px; border-radius:8px; overflow-x:auto; font-size:13px; }
+  .task{
+    font-size:14.5px; margin-bottom:14px; padding:12px 16px; background:var(--panel2);
+    border-radius:8px; border-left:3px solid var(--accent); animation:fadein .3s ease;
+  }
+  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .CodeMirror{
+    border:1px solid var(--border); border-radius:8px; height:auto; min-height:120px;
+    font-family:'SF Mono',Consolas,monospace; font-size:14px;
+  }
+  .editor-hint{ font-size:11.5px; color:var(--muted); margin-top:6px; }
+  .editor-hint kbd{ background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:11px; }
+
+  .btnrow{ display:flex; gap:10px; margin:12px 0; flex-wrap:wrap; align-items:center; }
+  button{
+    background:var(--accent); color:#fff; border:none; padding:9px 16px; border-radius:7px;
+    font-size:13.5px; cursor:pointer; font-weight:600; transition:transform .08s,opacity .15s;
+  }
+  button:hover{ opacity:.9; }
+  button:active{ transform:scale(.97); }
+  button.secondary{ background:var(--panel2); color:var(--text); border:1px solid var(--border); }
+  button:disabled{ opacity:.5; cursor:default; }
+
+  #result-wrap{ margin-top:14px; }
+  #verdict{ font-weight:700; padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:14px; display:none; animation:fadein .2s ease; }
+  #verdict.pass{ display:block; background:rgba(62,207,142,.15); color:var(--good); }
+  #verdict.fail{ display:block; background:rgba(255,92,124,.15); color:var(--bad); }
+  #hint{ display:none; font-size:13.5px; color:var(--muted); margin-top:8px; padding:10px 14px; background:var(--panel2); border-radius:8px; }
+  #row-count{ font-size:12px; color:var(--muted); margin:8px 0 4px; }
+  table{ border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
+  th,td{ border:1px solid var(--border); padding:6px 10px; text-align:left; white-space:nowrap; }
+  th{ background:var(--panel2); }
+  #err{ color:var(--bad); font-size:13px; margin-top:8px; font-family:monospace; white-space:pre-wrap; }
+  .schema-toggle{ font-size:12.5px; color:var(--accent); cursor:pointer; margin-bottom:14px; display:inline-block; }
+  #schema-box{ display:none; margin-bottom:14px; }
+  #schema-box table{ font-size:12px; }
+  .nav-footer{ display:flex; justify-content:space-between; margin-top:20px; }
+
+  #completion-banner{
+    display:none; margin-bottom:18px; padding:16px 20px; border-radius:10px;
+    background:linear-gradient(90deg, rgba(62,207,142,.15), rgba(91,140,255,.15));
+    border:1px solid var(--good); font-size:14px; animation:fadein .3s ease;
+  }
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:5px; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div id="brand">
+    <h1><span class="grad">SQL</span> Trainer</h1>
+    <p>10 hands-on lessons · real SQLite in your browser</p>
+  </div>
+  <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
+  <div id="lesson-list"></div>
+  <div id="sidebar-footer">
+    <button id="reset-btn" onclick="resetProgress()">↺ Reset progress</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div id="lesson-title"></div>
+    <div id="topbar-right">
+      <div id="progress-label"></div>
+      <button id="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme">🌙</button>
+    </div>
+  </div>
+  <div id="content">
+    <div id="completion-banner">🎉 <b>All 10 lessons complete!</b> You've covered SELECT through window functions — enough SQL to handle most real analyst interview screens.</div>
+
+    <span class="schema-toggle" onclick="toggleSchema()">▸ show sample database schema</span>
+    <div id="schema-box"></div>
+
+    <div class="concept" id="concept-box"></div>
+    <div class="task" id="task-box"></div>
+
+    <textarea id="editor" spellcheck="false"></textarea>
+    <div class="editor-hint">Tip: press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (or <kbd>Cmd</kbd>+<kbd>Enter</kbd>) to run your query.</div>
+
+    <div class="btnrow">
+      <button onclick="runQuery()">▶ Run Query</button>
+      <button class="secondary" onclick="checkAnswer()">✓ Check Answer</button>
+      <button class="secondary" onclick="toggleHint()">💡 Hint</button>
+      <button class="secondary" onclick="showSolution()">Show Solution</button>
+    </div>
+    <div id="hint"></div>
+
+    <div id="verdict"></div>
+    <div id="result-wrap">
+      <div id="err"></div>
+      <div id="row-count"></div>
+      <div id="result-table"></div>
+    </div>
+
+    <div class="nav-footer">
+      <button class="secondary" onclick="prevLesson()">← Previous</button>
+      <button onclick="nextLesson()">Next Lesson →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- sample database ---------- */
+const SCHEMA_SQL = `
+CREATE TABLE customers (
+  customer_id INTEGER PRIMARY KEY,
+  name TEXT, country TEXT, signup_date TEXT
+);
+CREATE TABLE products (
+  product_id INTEGER PRIMARY KEY,
+  name TEXT, category TEXT, price REAL
+);
+CREATE TABLE orders (
+  order_id INTEGER PRIMARY KEY,
+  customer_id INTEGER, order_date TEXT, status TEXT
+);
+CREATE TABLE order_items (
+  order_item_id INTEGER PRIMARY KEY,
+  order_id INTEGER, product_id INTEGER, quantity INTEGER
+);
+
+INSERT INTO customers VALUES
+ (1,'Ayse Kaya','Turkey','2023-01-15'),
+ (2,'John Smith','USA','2022-11-02'),
+ (3,'Maria Garcia','Spain','2023-03-22'),
+ (4,'Wei Chen','China','2021-07-10'),
+ (5,'Fatima Al-Sayed','UAE','2023-05-30'),
+ (6,'Liam OBrien','Ireland','2022-09-18'),
+ (7,'Sara Muller','Germany','2023-02-11'),
+ (8,'Kenji Sato','Japan','2021-12-05'),
+ (9,'Priya Sharma','India','2023-06-01'),
+ (10,'Emre Yildiz','Turkey','2022-04-27');
+
+INSERT INTO products VALUES
+ (1,'Wireless Mouse','Electronics',19.99),
+ (2,'Mechanical Keyboard','Electronics',79.99),
+ (3,'USB-C Hub','Electronics',29.99),
+ (4,'Office Chair','Furniture',149.99),
+ (5,'Standing Desk','Furniture',349.99),
+ (6,'Notebook Set','Stationery',9.99),
+ (7,'Desk Lamp','Furniture',34.99),
+ (8,'Webcam HD','Electronics',49.99),
+ (9,'Monitor 27in','Electronics',229.99),
+ (10,'Pen Pack','Stationery',4.99);
+
+INSERT INTO orders VALUES
+ (1,1,'2023-02-01','completed'),
+ (2,2,'2023-02-03','completed'),
+ (3,3,'2023-02-10','pending'),
+ (4,1,'2023-03-05','completed'),
+ (5,4,'2023-03-12','cancelled'),
+ (6,5,'2023-03-20','completed'),
+ (7,2,'2023-04-01','completed'),
+ (8,6,'2023-04-10','pending'),
+ (9,7,'2023-04-15','completed'),
+ (10,8,'2023-05-01','completed'),
+ (11,1,'2023-05-18','completed'),
+ (12,9,'2023-06-02','cancelled'),
+ (13,3,'2023-06-20','completed'),
+ (14,10,'2023-07-01','completed'),
+ (15,2,'2023-07-15','pending'),
+ (16,5,'2023-08-01','completed'),
+ (17,7,'2023-08-20','completed'),
+ (18,4,'2023-09-05','completed'),
+ (19,6,'2023-09-18','completed'),
+ (20,8,'2023-10-01','completed');
+
+INSERT INTO order_items VALUES
+ (1,1,1,2),(2,1,6,3),(3,2,2,1),(4,2,3,1),(5,3,9,1),
+ (6,4,4,1),(7,4,7,2),(8,5,5,1),(9,6,8,1),(10,6,1,1),
+ (11,7,2,1),(12,7,9,1),(13,8,10,5),(14,9,3,2),(15,9,6,1),
+ (16,10,5,1),(17,10,4,2),(18,11,1,4),(19,12,9,1),(20,13,2,1),
+ (21,13,8,1),(22,14,7,1),(23,14,6,2),(24,15,3,1),(25,16,4,1),
+ (26,16,5,1),(27,17,9,1),(28,17,1,2),(29,18,2,1),(30,18,10,3),
+ (31,19,8,1),(32,19,3,1),(33,20,7,1),(34,20,6,1);
+`;
+
+/* ---------- lessons ---------- */
+const LESSONS = [
+{
+  id:'select', difficulty:'beginner', title:'1. SELECT & LIMIT',
+  concept:`<h2>SELECT basics</h2>
+    <p>Every SQL query starts with <code>SELECT</code> to pick columns, and <code>FROM</code> to pick the table.
+    <code>LIMIT</code> caps how many rows come back.</p>
+    <pre>SELECT column1, column2 FROM table_name LIMIT 5;</pre>`,
+  task:'Select the <b>name</b> and <b>country</b> columns from <code>customers</code>, limited to 5 rows.',
+  hint:'SELECT name, country FROM customers LIMIT 5;',
+  solution:'SELECT name, country FROM customers LIMIT 5;',
+  ignoreOrder:false
+},
+{
+  id:'where', difficulty:'beginner', title:'2. WHERE filtering',
+  concept:`<h2>Filtering rows with WHERE</h2>
+    <p><code>WHERE</code> filters rows before they're returned. Combine conditions with <code>AND</code> / <code>OR</code>.</p>
+    <pre>SELECT * FROM table_name WHERE condition1 AND condition2;</pre>`,
+  task:'Find the <b>name</b> and <b>price</b> of all products in the <code>Electronics</code> category priced under 50.',
+  hint:"SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
+  solution:"SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
+  ignoreOrder:true
+},
+{
+  id:'orderby', difficulty:'beginner', title:'3. ORDER BY',
+  concept:`<h2>Sorting with ORDER BY</h2>
+    <p><code>ORDER BY column DESC</code> sorts high to low; leave off <code>DESC</code> (or use <code>ASC</code>) to sort low to high.</p>
+    <pre>SELECT * FROM table_name ORDER BY column DESC;</pre>`,
+  task:'List every product\'s <b>name</b> and <b>price</b>, ordered from most expensive to cheapest.',
+  hint:'SELECT name, price FROM products ORDER BY price DESC;',
+  solution:'SELECT name, price FROM products ORDER BY price DESC;',
+  ignoreOrder:false
+},
+{
+  id:'aggregate', difficulty:'intermediate', title:'4. Aggregates',
+  concept:`<h2>Aggregate functions</h2>
+    <p><code>COUNT()</code>, <code>SUM()</code>, <code>AVG()</code>, <code>MIN()</code>, <code>MAX()</code> collapse many rows into one summary value.</p>
+    <pre>SELECT COUNT(*), AVG(column) FROM table_name;</pre>`,
+  task:'Return the <b>total number of products</b> (as <code>total_products</code>) and the <b>average price</b> (as <code>avg_price</code>) across all products.',
+  hint:'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
+  solution:'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
+  ignoreOrder:true
+},
+{
+  id:'groupby', difficulty:'intermediate', title:'5. GROUP BY & HAVING',
+  concept:`<h2>Grouping rows</h2>
+    <p><code>GROUP BY</code> buckets rows sharing a value so aggregates run per-bucket. <code>HAVING</code> filters
+    groups <i>after</i> aggregation (unlike <code>WHERE</code>, which filters rows before).</p>
+    <pre>SELECT category, COUNT(*) FROM products GROUP BY category HAVING COUNT(*) > 2;</pre>`,
+  task:'For each <b>category</b>, show the number of products (<code>num_products</code>) and average price (<code>avg_price</code>). Only include categories with <b>more than 2</b> products.',
+  hint:'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
+  solution:'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
+  ignoreOrder:true
+},
+{
+  id:'join', difficulty:'intermediate', title:'6. INNER JOIN',
+  concept:`<h2>Joining tables</h2>
+    <p><code>JOIN ... ON</code> combines rows from two tables that share a related key — here, each order's
+    <code>customer_id</code> matches a customer's <code>customer_id</code>.</p>
+    <pre>SELECT a.col, b.col FROM table_a a JOIN table_b b ON a.key = b.key;</pre>`,
+  task:'List each order\'s <b>order_id</b>, <b>order_date</b>, and the <b>name</b> of the customer who placed it.',
+  hint:'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
+  solution:'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
+  ignoreOrder:true
+},
+{
+  id:'leftjoin', difficulty:'intermediate', title:'7. LEFT JOIN',
+  concept:`<h2>LEFT JOIN</h2>
+    <p><code>LEFT JOIN</code> keeps every row from the left table even if there's no match on the right
+    (missing values come back as NULL). Useful for "including zero" cases, like customers with no orders.</p>
+    <pre>SELECT a.col FROM table_a a LEFT JOIN table_b b ON a.key = b.key;</pre>`,
+  task:'For every customer, show their <b>name</b> and their <b>total number of orders</b> (as <code>order_count</code>) — including customers with zero orders.',
+  hint:'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
+  solution:'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
+  ignoreOrder:true
+},
+{
+  id:'subquery', difficulty:'advanced', title:'8. Subqueries',
+  concept:`<h2>Subqueries</h2>
+    <p>A query can be nested inside another, usually inside <code>WHERE</code>, to compute a value used for filtering.</p>
+    <pre>SELECT * FROM table_name WHERE column > (SELECT AVG(column) FROM table_name);</pre>`,
+  task:'Find the <b>name</b> and <b>price</b> of products priced <b>above the average price</b> of all products.',
+  hint:'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
+  solution:'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
+  ignoreOrder:true
+},
+{
+  id:'cte', difficulty:'advanced', title:'9. CTEs (WITH)',
+  concept:`<h2>Common Table Expressions</h2>
+    <p><code>WITH name AS (...)</code> defines a temporary named result set you can query afterward — great for
+    breaking a complex query into readable steps.</p>
+    <pre>WITH totals AS (SELECT ... ) SELECT * FROM totals WHERE ...;</pre>`,
+  task:'Using a CTE named <code>order_totals</code>, compute each order\'s revenue as <code>SUM(quantity * price)</code> (join <code>order_items</code> to <code>products</code>), then select only orders with revenue over 100.',
+  hint:'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
+  solution:'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
+  ignoreOrder:true
+},
+{
+  id:'window', difficulty:'advanced', title:'10. Window functions',
+  concept:`<h2>Window functions</h2>
+    <p><code>RANK() OVER (PARTITION BY ... ORDER BY ...)</code> ranks rows within groups without collapsing them
+    the way <code>GROUP BY</code> does — you still get one output row per input row.</p>
+    <pre>SELECT col, RANK() OVER (PARTITION BY group_col ORDER BY sort_col DESC) FROM table_name;</pre>`,
+  task:'Show each product\'s <b>name</b>, <b>category</b>, <b>price</b>, and its <b>price_rank</b> within its category (highest price = rank 1), using <code>RANK()</code>.',
+  hint:'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
+  solution:'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
+  ignoreOrder:true
+}
+];
+
+/* ---------- app state ---------- */
+let db, current = 0, cm;
+const progressKey = 'sqltrainer_progress';
+const themeKey = 'sqltrainer_theme';
+function loadProgress(){ try{ return JSON.parse(localStorage.getItem(progressKey))||{}; }catch(e){ return {}; } }
+function saveProgress(p){ localStorage.setItem(progressKey, JSON.stringify(p)); }
+
+/* ---------- theme ---------- */
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+  const link = document.getElementById('cm-theme-link');
+  if(cm){
+    if(theme === 'dark'){ link.disabled = false; cm.setOption('theme','dracula'); }
+    else { cm.setOption('theme','default'); }
+  }
+  localStorage.setItem(themeKey, theme);
+}
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+
+/* ---------- init ---------- */
+async function init(){
+  const savedTheme = localStorage.getItem(themeKey) ||
+    (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+
+  const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+  db = new SQL.Database();
+  db.run(SCHEMA_SQL);
+
+  cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+    mode: 'text/x-sql',
+    lineNumbers: true,
+    matchBrackets: true,
+    indentWithTabs: false,
+    lineWrapping: true,
+    extraKeys: {
+      'Ctrl-Enter': runQuery,
+      'Cmd-Enter': runQuery
+    }
+  });
+
+  applyTheme(savedTheme);
+  buildSidebar();
+  buildSchemaBox();
+  loadLesson(0);
+}
+
+function buildSidebar(){
+  const list = document.getElementById('lesson-list');
+  const progress = loadProgress();
+  list.innerHTML = '';
+  LESSONS.forEach((l,i)=>{
+    const div = document.createElement('div');
+    div.className = 'lesson-item' + (i===current?' active':'');
+    div.onclick = ()=>loadLesson(i);
+    div.innerHTML = `<span class="check ${progress[l.id]?'done':''}">${progress[l.id]?'✓':''}</span><span class="num">${l.title}</span><span class="tag ${l.difficulty}">${l.difficulty}</span>`;
+    list.appendChild(div);
+  });
+  const done = LESSONS.filter(l=>progress[l.id]).length;
+  document.getElementById('progress-label').textContent = `${done} / ${LESSONS.length} complete`;
+  document.getElementById('progress-bar-fill').style.width = `${(done/LESSONS.length)*100}%`;
+  document.getElementById('completion-banner').style.display = (done === LESSONS.length) ? 'block' : 'none';
+}
+
+function buildSchemaBox(){
+  const box = document.getElementById('schema-box');
+  box.innerHTML = `
+    <table><tr><th>Table</th><th>Columns</th></tr>
+    <tr><td>customers</td><td>customer_id, name, country, signup_date</td></tr>
+    <tr><td>products</td><td>product_id, name, category, price</td></tr>
+    <tr><td>orders</td><td>order_id, customer_id, order_date, status</td></tr>
+    <tr><td>order_items</td><td>order_item_id, order_id, product_id, quantity</td></tr>
+    </table>`;
+}
+function toggleSchema(){
+  const box = document.getElementById('schema-box');
+  const toggle = document.querySelector('.schema-toggle');
+  const show = box.style.display !== 'block';
+  box.style.display = show ? 'block' : 'none';
+  toggle.textContent = (show?'▾':'▸') + ' show sample database schema';
+}
+
+function loadLesson(i){
+  current = i;
+  const l = LESSONS[i];
+  document.getElementById('lesson-title').textContent = l.title;
+  document.getElementById('concept-box').innerHTML = l.concept;
+  document.getElementById('task-box').innerHTML = l.task;
+  cm.setValue('');
+  document.getElementById('hint').style.display = 'none';
+  document.getElementById('hint').textContent = l.hint;
+  document.getElementById('verdict').className = '';
+  document.getElementById('verdict').textContent = '';
+  document.getElementById('err').textContent = '';
+  document.getElementById('row-count').textContent = '';
+  document.getElementById('result-table').innerHTML = '';
+  buildSidebar();
+  setTimeout(()=>cm.refresh(), 30);
+}
+function prevLesson(){ if(current>0) loadLesson(current-1); }
+function nextLesson(){ if(current<LESSONS.length-1) loadLesson(current+1); }
+function toggleHint(){
+  const h = document.getElementById('hint');
+  h.style.display = h.style.display==='block' ? 'none' : 'block';
+}
+function showSolution(){
+  cm.setValue(LESSONS[current].solution);
+}
+function resetProgress(){
+  if(!confirm('Reset all lesson progress? This cannot be undone.')) return;
+  localStorage.removeItem(progressKey);
+  buildSidebar();
+}
+
+function execSql(sql){
+  const res = db.exec(sql);
+  return res.length ? res[0] : { columns:[], values:[] };
+}
+
+function renderTable(result){
+  const rc = document.getElementById('row-count');
+  if(!result.columns.length){
+    document.getElementById('result-table').innerHTML = '<p style="color:var(--muted)">(no rows returned)</p>';
+    rc.textContent = '';
+    return;
+  }
+  rc.textContent = `${result.values.length} row${result.values.length === 1 ? '' : 's'} returned`;
+  let html = '<table><tr>' + result.columns.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  result.values.forEach(row=>{
+    html += '<tr>' + row.map(v=>`<td>${v===null?'<i>NULL</i>':v}</td>`).join('') + '</tr>';
+  });
+  html += '</table>';
+  document.getElementById('result-table').innerHTML = html;
+}
+
+function runQuery(){
+  document.getElementById('err').textContent = '';
+  document.getElementById('verdict').className = '';
+  document.getElementById('verdict').textContent = '';
+  const sql = cm.getValue().trim();
+  if(!sql) return;
+  try{
+    const result = execSql(sql);
+    renderTable(result);
+  }catch(e){
+    document.getElementById('err').textContent = 'SQL error: ' + e.message;
+    document.getElementById('result-table').innerHTML = '';
+    document.getElementById('row-count').textContent = '';
+  }
+}
+
+function normalize(result, ignoreOrder){
+  const rows = result.values.map(r => JSON.stringify(r));
+  return ignoreOrder ? rows.slice().sort() : rows;
+}
+
+function checkAnswer(){
+  const sql = cm.getValue().trim();
+  const verdict = document.getElementById('verdict');
+  document.getElementById('err').textContent = '';
+  if(!sql){ verdict.className='fail'; verdict.textContent='Write a query first.'; return; }
+  const lesson = LESSONS[current];
+  let userResult, solResult;
+  try{
+    userResult = execSql(sql);
+  }catch(e){
+    verdict.className = 'fail';
+    verdict.textContent = '✗ SQL error: ' + e.message;
+    return;
+  }
+  solResult = execSql(lesson.solution);
+  renderTable(userResult);
+
+  const colsMatch = JSON.stringify(userResult.columns.map(c=>c.toLowerCase()))
+                  === JSON.stringify(solResult.columns.map(c=>c.toLowerCase()));
+  const userRows = normalize(userResult, lesson.ignoreOrder);
+  const solRows = normalize(solResult, lesson.ignoreOrder);
+  const rowsMatch = JSON.stringify(userRows) === JSON.stringify(solRows);
+
+  if(colsMatch && rowsMatch){
+    verdict.className = 'pass';
+    verdict.textContent = '✓ Correct! Nice work.';
+    const progress = loadProgress();
+    progress[lesson.id] = true;
+    saveProgress(progress);
+    buildSidebar();
+  } else {
+    verdict.className = 'fail';
+    let msg = '✗ Not quite — ';
+    if(!colsMatch) msg += 'check your column names/aliases and how many columns you\'re returning.';
+    else if(!rowsMatch) msg += lesson.ignoreOrder
+        ? 'the row values don\'t match the expected result.'
+        : 'the row values or their order don\'t match the expected result (this lesson checks order).';
+    verdict.textContent = msg;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
