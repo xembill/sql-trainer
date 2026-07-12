@@ -8,6 +8,9 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%97%83%EF%B8%8F</text></svg>">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <link id="cm-theme-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
@@ -144,6 +147,23 @@
     border:1px solid var(--good); font-size:14px; animation:fadein .3s ease;
   }
 
+  #certificate-section{
+    display:none; margin-bottom:20px; padding:20px; border-radius:10px;
+    background:var(--panel); border:1px solid var(--border); animation:fadein .3s ease;
+  }
+  #certificate-section h3{ margin:0 0 12px; font-size:15px; }
+  .cert-form{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .cert-form input{
+    flex:1; min-width:220px; padding:9px 12px; border-radius:7px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:14px;
+  }
+  #cert-preview-wrap{ margin-top:16px; }
+  #cert-canvas{
+    width:100%; max-width:640px; height:auto; border-radius:6px; box-shadow:0 6px 24px rgba(0,0,0,.25);
+    display:none;
+  }
+  #cert-download-row{ display:none; gap:10px; margin-top:12px; flex-wrap:wrap; }
+
   ::-webkit-scrollbar{ width:10px; height:10px; }
   ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:5px; }
 </style>
@@ -172,6 +192,21 @@
   </div>
   <div id="content">
     <div id="completion-banner">🎉 <b>All 10 lessons complete!</b> You've covered SELECT through window functions — enough SQL to handle most real analyst interview screens.</div>
+
+    <div id="certificate-section">
+      <h3>🎓 Get your certificate</h3>
+      <div class="cert-form">
+        <input id="cert-name-input" type="text" placeholder="Enter the name to print on your certificate" maxlength="60">
+        <button onclick="generateCertificate()">Generate Certificate</button>
+      </div>
+      <div id="cert-preview-wrap">
+        <canvas id="cert-canvas"></canvas>
+        <div id="cert-download-row">
+          <button class="secondary" onclick="downloadCertPNG()">⬇ Download PNG</button>
+          <button class="secondary" onclick="downloadCertPDF()">⬇ Download PDF</button>
+        </div>
+      </div>
+    </div>
 
     <span class="schema-toggle" onclick="toggleSchema()">▸ show sample database schema</span>
     <div id="schema-box"></div>
@@ -454,7 +489,113 @@ function buildSidebar(){
   const done = LESSONS.filter(l=>progress[l.id]).length;
   document.getElementById('progress-label').textContent = `${done} / ${LESSONS.length} complete`;
   document.getElementById('progress-bar-fill').style.width = `${(done/LESSONS.length)*100}%`;
-  document.getElementById('completion-banner').style.display = (done === LESSONS.length) ? 'block' : 'none';
+  const allDone = done === LESSONS.length;
+  document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
+  document.getElementById('certificate-section').style.display = allDone ? 'block' : 'none';
+}
+
+/* ---------- certificate ---------- */
+async function generateCertificate(){
+  const nameInput = document.getElementById('cert-name-input');
+  const name = nameInput.value.trim() || 'SQL Trainer Student';
+  if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
+  drawCertificate(name);
+  document.getElementById('cert-canvas').style.display = 'block';
+  document.getElementById('cert-download-row').style.display = 'flex';
+}
+
+function drawCertificate(name){
+  const canvas = document.getElementById('cert-canvas');
+  const W = 1600, H = 1131;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#fdfbf3';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#1b2a4a';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(30, 30, W - 60, H - 60);
+  ctx.strokeStyle = '#c9a227';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(50, 50, W - 100, H - 100);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#8b6b1f';
+  ctx.font = '600 26px Georgia, serif';
+  ctx.fillText('S Q L   T R A I N E R', W / 2, 150);
+
+  ctx.fillStyle = '#1b2a4a';
+  ctx.font = '700 60px "Playfair Display", Georgia, serif';
+  ctx.fillText('Certificate of Completion', W / 2, 235);
+
+  ctx.fillStyle = '#555';
+  ctx.font = '24px Georgia, serif';
+  ctx.fillText('This certifies that', W / 2, 335);
+
+  ctx.fillStyle = '#1b2a4a';
+  ctx.font = 'italic 700 68px "Playfair Display", Georgia, serif';
+  ctx.fillText(name, W / 2, 430);
+
+  const nameWidth = ctx.measureText(name).width;
+  ctx.strokeStyle = '#c9a227';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(W / 2 - nameWidth / 2 - 20, 455);
+  ctx.lineTo(W / 2 + nameWidth / 2 + 20, 455);
+  ctx.stroke();
+
+  ctx.fillStyle = '#555';
+  ctx.font = '22px Georgia, serif';
+  ctx.fillText('has successfully completed all 10 lessons of the SQL Trainer interactive course,', W / 2, 530);
+  ctx.fillText('demonstrating proficiency from SELECT statements through window functions.', W / 2, 565);
+
+  ctx.beginPath();
+  ctx.arc(W - 220, H - 220, 80, 0, Math.PI * 2);
+  ctx.fillStyle = '#c9a227';
+  ctx.fill();
+  ctx.fillStyle = '#fdfbf3';
+  ctx.font = '700 22px Georgia, serif';
+  ctx.fillText('SQL', W - 220, H - 226);
+  ctx.font = '700 26px Georgia, serif';
+  ctx.fillText('✓', W - 220, H - 192);
+
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  ctx.textAlign = 'left';
+  ctx.strokeStyle = '#1b2a4a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(150, H - 210);
+  ctx.lineTo(420, H - 210);
+  ctx.stroke();
+  ctx.fillStyle = '#1b2a4a';
+  ctx.font = '20px Georgia, serif';
+  ctx.fillText(dateStr, 150, H - 185);
+  ctx.fillStyle = '#888';
+  ctx.font = '14px Georgia, serif';
+  ctx.fillText('Date Completed', 150, H - 165);
+
+  const certId = 'SQLT-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+  ctx.textAlign = 'center';
+  ctx.font = '14px monospace';
+  ctx.fillStyle = '#999';
+  ctx.fillText('Certificate ID: ' + certId, W / 2, H - 70);
+}
+
+function downloadCertPNG(){
+  const canvas = document.getElementById('cert-canvas');
+  const link = document.createElement('a');
+  link.download = 'sql-trainer-certificate.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function downloadCertPDF(){
+  const canvas = document.getElementById('cert-canvas');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
+  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+  pdf.save('sql-trainer-certificate.pdf');
 }
 
 function buildSchemaBox(){
