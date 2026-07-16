@@ -5,10 +5,10 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST bekleniyor' }); return; }
 
-    const url = process.env.KV_REST_API_URL;
-    const tok = process.env.KV_REST_API_TOKEN;
+    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const tok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
     if (!url || !tok) {
-      res.status(200).json({ ok: false, reason: 'KV bağlanmamış (Vercel Storage → KV oluştur)' });
+      res.status(200).json({ ok: false, reason: 'KV bağlanmamış (Vercel Storage → Upstash for Redis oluştur)' });
       return;
     }
 

@@ -3,8 +3,8 @@ module.exports = async (req, res) => {
   try {
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
 
-    const url = process.env.KV_REST_API_URL;
-    const tok = process.env.KV_REST_API_TOKEN;
+    const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const tok = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
     if (!url || !tok) {
       res.status(200).json({ ok: false, reason: 'KV bağlanmamış' });
       return;
