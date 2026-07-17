@@ -11,7 +11,7 @@ SQL'i sadece sözdizimi ezberleyerek değil, küçük bir e-ticaret veri seti ü
 ## Özellikler
 
 - **17 ders (basitten zora):** `SELECT`/`LIMIT` → `WHERE` → `ORDER BY` → `DISTINCT` → aggregates → `GROUP BY`/`HAVING` → `CASE WHEN` → `LIKE` → `JOIN` → `LEFT JOIN` → `COALESCE`/`NULL` → çoklu `JOIN` → self `JOIN` → subquery → `UNION` → CTE (`WITH`) → pencere fonksiyonları (`RANK() OVER`)
-- Tarayıcıda gerçek SQLite (WebAssembly) — customers, products, orders, order_items, employees tabloları
+- Tarayıcıda gerçek SQLite (WebAssembly) — customers, products, orders, order_items, flights tabloları
 - Sözdizimi vurgulu SQL editörü (CodeMirror), `Ctrl/Cmd+Enter` ile çalıştırma
 - Otomatik değerlendirme: sorgunun sonucu referans çözümla karşılaştırılır (sütunlar + satırlar), metin eşleşmesi değil
 - Her derste ipucu ve çözüm

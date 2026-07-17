@@ -1,310 +1,883 @@
 <!doctype html>
 <html lang="tr">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SQL Trainer — Rana için 🐬</title>
-<meta name="description" content="Tarayıcıda çalışan etkileşimli SQL öğrenme uygulaması. Gerçek SQLite motoru (sql.js/WASM), otomatik kontrol alıştırmaları.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%97%83%EF%B8%8F</text></svg>">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SQL Trainer — Rana için 🐬</title>
+  <meta name="description"
+    content="Tarayıcıda çalışan etkileşimli SQL öğrenme uygulaması. Gerçek SQLite motoru (sql.js/WASM), otomatik kontrol alıştırmaları.">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%97%83%EF%B8%8F</text></svg>">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-<link id="cm-theme-link" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link id="cm-theme-link" rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
 
-<style>
-  :root{
-    --bg:#0f1117; --panel:#171a23; --panel2:#1e2230; --border:#2a2f3d;
-    --text:#e6e8ef; --muted:#8b90a3; --accent:#5b8cff; --accent2:#8b6bff; --good:#3ecf8e; --bad:#ff5c7c;
-    --rana:#c9a227;
-  }
-  :root[data-theme="light"]{
-    --bg:#f5f6fa; --panel:#ffffff; --panel2:#f0f1f6; --border:#dcdfe8;
-    --text:#1b1e27; --muted:#5b5f6e; --accent:#3b6fe0; --accent2:#7c5cff; --good:#1f9d63; --bad:#d8355a;
-  }
-  *{box-sizing:border-box;}
-  html,body{ height:100%; }
-  body{
-    margin:0; background:var(--bg); color:var(--text);
-    font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-    display:flex; height:100vh; overflow:hidden;
-    transition:background .2s,color .2s;
-  }
-  a{ color:var(--accent); }
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #171a23;
+      --panel2: #1e2230;
+      --border: #2a2f3d;
+      --text: #e6e8ef;
+      --muted: #8b90a3;
+      --accent: #5b8cff;
+      --accent2: #8b6bff;
+      --good: #3ecf8e;
+      --bad: #ff5c7c;
+      --rana: #c9a227;
+    }
 
-  /* ---------- sidebar ---------- */
-  #sidebar{
-    width:280px; flex:0 0 280px; background:var(--panel); border-right:1px solid var(--border);
-    overflow-y:auto; padding:18px 0; display:flex; flex-direction:column;
-  }
-  #brand{ padding:0 18px 4px; }
-  #brand h1{ font-size:16px; margin:0; letter-spacing:.3px; display:flex; align-items:center; gap:8px; }
-  #brand h1 span.grad{
-    background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text;
-    background-clip:text; color:transparent; font-weight:800;
-  }
-  #brand p{ margin:4px 0 16px; font-size:11.5px; color:var(--muted); }
-  #rana-tag{
-    margin:0 18px 12px; padding:6px 10px; font-size:11px; border-radius:8px;
-    background:linear-gradient(90deg, rgba(201,162,39,.12), rgba(139,107,255,.12));
-    border:1px solid var(--rana); color:var(--rana);
-  }
+    :root[data-theme="light"] {
+      --bg: #f5f6fa;
+      --panel: #ffffff;
+      --panel2: #f0f1f6;
+      --border: #dcdfe8;
+      --text: #1b1e27;
+      --muted: #5b5f6e;
+      --accent: #3b6fe0;
+      --accent2: #7c5cff;
+      --good: #1f9d63;
+      --bad: #d8355a;
+    }
 
-  #progress-bar-track{ height:6px; margin:0 18px 16px; background:var(--panel2); border-radius:99px; overflow:hidden; }
-  #progress-bar-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .35s ease; }
+    * {
+      box-sizing: border-box;
+    }
 
-  #lesson-list{ flex:1; }
-  .lesson-item{
-    padding:10px 18px; cursor:pointer; font-size:13.5px; color:var(--muted);
-    border-left:3px solid transparent; display:flex; align-items:center; gap:10px;
-    transition:background .12s,color .12s;
-  }
-  .lesson-item:hover{ background:var(--panel2); color:var(--text); }
-  .lesson-item.active{ border-left-color:var(--accent); background:var(--panel2); color:var(--text); font-weight:600; }
-  .lesson-item .num{ flex:1; line-height:1.25; }
-  .lesson-item .tag{
-    font-size:9.5px; text-transform:uppercase; letter-spacing:.4px; padding:2px 6px; border-radius:99px;
-    color:var(--muted); border:1px solid var(--border); flex:0 0 auto;
-  }
-  .tag.beginner{ color:var(--good); border-color:var(--good); }
-  .tag.intermediate{ color:var(--accent); border-color:var(--accent); }
-  .tag.advanced{ color:var(--accent2); border-color:var(--accent2); }
-  .check{
-    width:16px; height:16px; border-radius:50%; border:1.5px solid var(--border);
-    flex:0 0 16px; font-size:10px; display:flex; align-items:center; justify-content:center; color:transparent;
-  }
-  .check.done{ background:var(--good); border-color:var(--good); color:#fff; }
+    html,
+    body {
+      height: 100%;
+    }
 
-  #sidebar-footer{ padding:12px 18px 0; border-top:1px solid var(--border); margin-top:10px; }
-  #sidebar-footer a{ font-size:12px; color:var(--muted); text-decoration:none; }
-  #sidebar-footer a:hover{ color:var(--accent); }
-  #reset-btn{ font-size:11.5px; color:var(--muted); background:none; border:none; cursor:pointer; padding:8px 0; }
-  #reset-btn:hover{ color:var(--bad); }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+      transition: background .2s, color .2s;
+    }
 
-  /* ---------- main ---------- */
-  #main{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
-  #topbar{
-    padding:14px 24px; border-bottom:1px solid var(--border); display:flex;
-    justify-content:space-between; align-items:center; background:var(--panel);
-  }
-  #lesson-title{ font-weight:700; font-size:15px; }
-  #topbar-right{ display:flex; align-items:center; gap:14px; }
-  #progress-label{ font-size:13px; color:var(--muted); }
-  #theme-toggle{
-    background:var(--panel2); border:1px solid var(--border); color:var(--text);
-    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:15px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  #content{ flex:1; overflow-y:auto; padding:24px; max-width:920px; }
+    a {
+      color: var(--accent);
+    }
 
-  .concept{
-    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:18px 20px;
-    margin-bottom:14px; line-height:1.6; font-size:14.5px; animation:fadein .25s ease;
-  }
-  .concept h2{ margin:0 0 8px; font-size:19px; }
-  .concept code{ background:var(--panel2); padding:2px 6px; border-radius:4px; font-size:13px; }
-  .concept pre{ background:var(--panel2); padding:10px 14px; border-radius:8px; overflow-x:auto; font-size:13px; }
+    /* ---------- sidebar ---------- */
+    #sidebar {
+      width: 280px;
+      flex: 0 0 280px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 18px 0;
+      display: flex;
+      flex-direction: column;
+    }
 
-  /* Rana'ya Not kutusu */
-  .rana-note{
-    margin-bottom:14px; padding:12px 16px 12px 14px; border-radius:10px;
-    background:linear-gradient(90deg, rgba(201,162,39,.08), rgba(139,107,255,.06));
-    border:1px solid var(--border); border-left:4px solid var(--rana);
-    font-size:13.5px; line-height:1.55; animation:fadein .3s ease;
-  }
-  .rana-note .rn-head{ display:flex; align-items:center; gap:6px; font-weight:700; color:var(--rana); margin-bottom:4px; font-size:12.5px; }
-  .rana-note code{ background:var(--panel2); padding:2px 6px; border-radius:4px; font-size:12.5px; }
+    #brand {
+      padding: 0 18px 4px;
+    }
 
-  .task{
-    font-size:14.5px; margin-bottom:14px; padding:12px 16px; background:var(--panel2);
-    border-radius:8px; border-left:3px solid var(--accent); animation:fadein .3s ease;
-  }
-  @keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+    #brand h1 {
+      font-size: 16px;
+      margin: 0;
+      letter-spacing: .3px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-  .CodeMirror{
-    border:1px solid var(--border); border-radius:8px; height:auto; min-height:120px;
-    font-family:'SF Mono',Consolas,monospace; font-size:14px;
-  }
-  .editor-hint{ font-size:11.5px; color:var(--muted); margin-top:6px; }
-  .editor-hint kbd{ background:var(--panel2); border:1px solid var(--border); border-radius:4px; padding:1px 5px; font-size:11px; }
+    #brand h1 span.grad {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      font-weight: 800;
+    }
 
-  .btnrow{ display:flex; gap:10px; margin:12px 0; flex-wrap:wrap; align-items:center; }
-  button{
-    background:var(--accent); color:#fff; border:none; padding:9px 16px; border-radius:7px;
-    font-size:13.5px; cursor:pointer; font-weight:600; transition:transform .08s,opacity .15s;
-  }
-  button:hover{ opacity:.9; }
-  button:active{ transform:scale(.97); }
-  button.secondary{ background:var(--panel2); color:var(--text); border:1px solid var(--border); }
-  button:disabled{ opacity:.5; cursor:default; }
+    #brand p {
+      margin: 4px 0 16px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
 
-  #result-wrap{ margin-top:14px; }
-  #verdict{ font-weight:700; padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:14px; display:none; animation:fadein .2s ease; }
-  #verdict.pass{ display:block; background:rgba(62,207,142,.15); color:var(--good); }
-  #verdict.fail{ display:block; background:rgba(255,92,124,.15); color:var(--bad); }
-  #hint{ display:none; font-size:13.5px; color:var(--muted); margin-top:8px; padding:10px 14px; background:var(--panel2); border-radius:8px; }
-  #row-count{ font-size:12px; color:var(--muted); margin:8px 0 4px; }
-  table{ border-collapse:collapse; width:100%; font-size:13px; margin-top:6px; }
-  th,td{ border:1px solid var(--border); padding:6px 10px; text-align:left; white-space:nowrap; }
-  th{ background:var(--panel2); }
-  #err{ color:var(--bad); font-size:13px; margin-top:8px; font-family:monospace; white-space:pre-wrap; }
-  .schema-toggle{ font-size:12.5px; color:var(--accent); cursor:pointer; margin-bottom:14px; display:inline-block; }
-  #schema-box{ display:none; margin-bottom:14px; }
-  #schema-box table{ font-size:12px; }
-  .nav-footer{ display:flex; justify-content:space-between; margin-top:20px; }
+    #rana-tag {
+      margin: 0 18px 12px;
+      padding: 6px 10px;
+      font-size: 11px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, rgba(201, 162, 39, .12), rgba(139, 107, 255, .12));
+      border: 1px solid var(--rana);
+      color: var(--rana);
+    }
 
-  #completion-banner{
-    display:none; margin-bottom:18px; padding:16px 20px; border-radius:10px;
-    background:linear-gradient(90deg, rgba(62,207,142,.15), rgba(91,140,255,.15));
-    border:1px solid var(--good); font-size:14px; animation:fadein .3s ease; line-height:1.55;
-  }
+    #progress-bar-track {
+      height: 6px;
+      margin: 0 18px 16px;
+      background: var(--panel2);
+      border-radius: 99px;
+      overflow: hidden;
+    }
 
-  #certificate-section{
-    display:none; margin-bottom:20px; padding:20px; border-radius:10px;
-    background:var(--panel); border:1px solid var(--border); animation:fadein .3s ease;
-  }
-  #certificate-section h3{ margin:0 0 12px; font-size:15px; }
-  .cert-form{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .cert-form input{
-    flex:1; min-width:220px; padding:9px 12px; border-radius:7px; border:1px solid var(--border);
-    background:var(--bg); color:var(--text); font-size:14px;
-  }
-  #cert-preview-wrap{ margin-top:16px; }
-  #cert-canvas{
-    width:100%; max-width:640px; height:auto; border-radius:6px; box-shadow:0 6px 24px rgba(0,0,0,.25);
-    display:none;
-  }
-  #cert-download-row{ display:none; gap:10px; margin-top:12px; flex-wrap:wrap; }
+    #progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width .35s ease;
+    }
 
-  ::-webkit-scrollbar{ width:10px; height:10px; }
-  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:5px; }
+    #lesson-list {
+      flex: 1;
+    }
 
-  /* confetti */
-  #confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:9998; }
+    .lesson-item {
+      padding: 10px 18px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--muted);
+      border-left: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: background .12s, color .12s;
+    }
 
-  /* toast */
-  #toast-box{ position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:9999; display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none; }
-  .toast{
-    background:var(--panel); border:1px solid var(--border); color:var(--text);
-    padding:11px 18px; border-radius:10px; font-size:13.5px; box-shadow:0 8px 30px rgba(0,0,0,.35);
-    opacity:0; transform:translateY(12px) scale(.98); transition:opacity .25s, transform .25s; max-width:90vw;
-  }
-  .toast.show{ opacity:1; transform:translateY(0) scale(1); }
+    .lesson-item:hover {
+      background: var(--panel2);
+      color: var(--text);
+    }
 
-  /* observation modal */
-  #obs-overlay{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:10000; display:none; align-items:flex-start; justify-content:center; padding:24px; overflow-y:auto; }
-  #obs-panel{ background:var(--panel); border:1px solid var(--border); border-radius:12px; max-width:1000px; width:100%; padding:22px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
-  #obs-panel h2{ margin:0 0 4px; font-size:18px; }
-  #obs-panel .obs-sub{ font-size:12px; color:var(--muted); margin-bottom:16px; }
-  .obs-cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:18px; }
-  .obs-card{ background:var(--panel2); border:1px solid var(--border); border-radius:10px; padding:12px; }
-  .obs-card .v{ font-size:22px; font-weight:800; }
-  .obs-card .l{ font-size:11px; color:var(--muted); margin-top:2px; }
-  #obs-panel table{ font-size:12.5px; }
-  #obs-panel th,#obs-panel td{ white-space:normal; }
-  .obs-sec{ margin:18px 0 8px; font-weight:700; font-size:14px; }
-  .obs-err{ background:var(--panel2); border:1px solid var(--border); border-left:3px solid var(--bad); border-radius:8px; padding:8px 12px; margin-bottom:8px; font-size:12.5px; }
-  .obs-err code{ display:block; font-family:monospace; color:var(--text); margin:4px 0; white-space:pre-wrap; }
-  .obs-err .why{ color:var(--bad); }
-  .obs-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
-  #obs-timeline{ max-height:240px; overflow-y:auto; background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px; font-size:12px; font-family:monospace; line-height:1.7; }
-  .obs-close{ float:right; cursor:pointer; font-size:20px; color:var(--muted); background:none; border:none; padding:0 6px; }
-  .obs-close:hover{ color:var(--bad); }
-</style>
+    .lesson-item.active {
+      border-left-color: var(--accent);
+      background: var(--panel2);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .lesson-item .num {
+      flex: 1;
+      line-height: 1.25;
+    }
+
+    .lesson-item .tag {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      padding: 2px 6px;
+      border-radius: 99px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      flex: 0 0 auto;
+    }
+
+    .tag.beginner {
+      color: var(--good);
+      border-color: var(--good);
+    }
+
+    .tag.intermediate {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .tag.advanced {
+      color: var(--accent2);
+      border-color: var(--accent2);
+    }
+
+    .check {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex: 0 0 16px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+    }
+
+    .check.done {
+      background: var(--good);
+      border-color: var(--good);
+      color: #fff;
+    }
+
+    #sidebar-footer {
+      padding: 12px 18px 0;
+      border-top: 1px solid var(--border);
+      margin-top: 10px;
+    }
+
+    #sidebar-footer a {
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+    }
+
+    #sidebar-footer a:hover {
+      color: var(--accent);
+    }
+
+    #reset-btn {
+      font-size: 11.5px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+
+    #reset-btn:hover {
+      color: var(--bad);
+    }
+
+    /* ---------- main ---------- */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #topbar {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+    }
+
+    #lesson-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    #topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    #progress-label {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    #theme-toggle {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      max-width: 920px;
+    }
+
+    .concept {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-bottom: 14px;
+      line-height: 1.6;
+      font-size: 14.5px;
+      animation: fadein .25s ease;
+    }
+
+    .concept h2 {
+      margin: 0 0 8px;
+      font-size: 19px;
+    }
+
+    .concept code {
+      background: var(--panel2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .concept pre {
+      background: var(--panel2);
+      padding: 10px 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 13px;
+    }
+
+    /* Rana'ya Not kutusu */
+    .rana-note {
+      margin-bottom: 14px;
+      padding: 12px 16px 12px 14px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(201, 162, 39, .08), rgba(139, 107, 255, .06));
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--rana);
+      font-size: 13.5px;
+      line-height: 1.55;
+      animation: fadein .3s ease;
+    }
+
+    .rana-note .rn-head {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 700;
+      color: var(--rana);
+      margin-bottom: 4px;
+      font-size: 12.5px;
+    }
+
+    .rana-note code {
+      background: var(--panel2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    .task {
+      font-size: 14.5px;
+      margin-bottom: 14px;
+      padding: 12px 16px;
+      background: var(--panel2);
+      border-radius: 8px;
+      border-left: 3px solid var(--accent);
+      animation: fadein .3s ease;
+    }
+
+    @keyframes fadein {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .CodeMirror {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: auto;
+      min-height: 120px;
+      font-family: 'SF Mono', Consolas, monospace;
+      font-size: 14px;
+    }
+
+    .editor-hint {
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .editor-hint kbd {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+    }
+
+    .btnrow {
+      display: flex;
+      gap: 10px;
+      margin: 12px 0;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 9px 16px;
+      border-radius: 7px;
+      font-size: 13.5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform .08s, opacity .15s;
+    }
+
+    button:hover {
+      opacity: .9;
+    }
+
+    button:active {
+      transform: scale(.97);
+    }
+
+    button.secondary {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: default;
+    }
+
+    #result-wrap {
+      margin-top: 14px;
+    }
+
+    #verdict {
+      font-weight: 700;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: none;
+      animation: fadein .2s ease;
+    }
+
+    #verdict.pass {
+      display: block;
+      background: rgba(62, 207, 142, .15);
+      color: var(--good);
+    }
+
+    #verdict.fail {
+      display: block;
+      background: rgba(255, 92, 124, .15);
+      color: var(--bad);
+    }
+
+    #hint {
+      display: none;
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-top: 8px;
+      padding: 10px 14px;
+      background: var(--panel2);
+      border-radius: 8px;
+    }
+
+    #row-count {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0 4px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 13px;
+      margin-top: 6px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      background: var(--panel2);
+    }
+
+    #err {
+      color: var(--bad);
+      font-size: 13px;
+      margin-top: 8px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+
+    .schema-toggle {
+      font-size: 12.5px;
+      color: var(--accent);
+      cursor: pointer;
+      margin-bottom: 14px;
+      display: inline-block;
+    }
+
+    #schema-box {
+      display: none;
+      margin-bottom: 14px;
+    }
+
+    #schema-box table {
+      font-size: 12px;
+    }
+
+    .nav-footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    #completion-banner {
+      display: none;
+      margin-bottom: 18px;
+      padding: 16px 20px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(62, 207, 142, .15), rgba(91, 140, 255, .15));
+      border: 1px solid var(--good);
+      font-size: 14px;
+      animation: fadein .3s ease;
+      line-height: 1.55;
+    }
+
+    #certificate-section {
+      display: none;
+      margin-bottom: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      animation: fadein .3s ease;
+    }
+
+    #certificate-section h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .cert-form {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .cert-form input {
+      flex: 1;
+      min-width: 220px;
+      padding: 9px 12px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    #cert-preview-wrap {
+      margin-top: 16px;
+    }
+
+    #cert-canvas {
+      width: 100%;
+      max-width: 640px;
+      height: auto;
+      border-radius: 6px;
+      box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+      display: none;
+    }
+
+    #cert-download-row {
+      display: none;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 5px;
+    }
+
+    /* confetti */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    /* toast */
+    #toast-box {
+      position: fixed;
+      left: 50%;
+      bottom: 28px;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
+      opacity: 0;
+      transform: translateY(12px) scale(.98);
+      transition: opacity .25s, transform .25s;
+      max-width: 90vw;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* observation modal */
+    #obs-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .6);
+      z-index: 10000;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    #obs-panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 1000px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+    }
+
+    #obs-panel h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+    }
+
+    #obs-panel .obs-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .obs-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .obs-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .obs-card .v {
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .obs-card .l {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    #obs-panel table {
+      font-size: 12.5px;
+    }
+
+    #obs-panel th,
+    #obs-panel td {
+      white-space: normal;
+    }
+
+    .obs-sec {
+      margin: 18px 0 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .obs-err {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--bad);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      font-size: 12.5px;
+    }
+
+    .obs-err code {
+      display: block;
+      font-family: monospace;
+      color: var(--text);
+      margin: 4px 0;
+      white-space: pre-wrap;
+    }
+
+    .obs-err .why {
+      color: var(--bad);
+    }
+
+    .obs-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    #obs-timeline {
+      max-height: 240px;
+      overflow-y: auto;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      font-family: monospace;
+      line-height: 1.7;
+    }
+
+    .obs-close {
+      float: right;
+      cursor: pointer;
+      font-size: 20px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      padding: 0 6px;
+    }
+
+    .obs-close:hover {
+      color: var(--bad);
+    }
+  </style>
 </head>
+
 <body>
 
-<canvas id="confetti-canvas"></canvas>
-<div id="toast-box"></div>
+  <canvas id="confetti-canvas"></canvas>
+  <div id="toast-box"></div>
 
-<div id="sidebar">
-  <div id="brand">
-    <h1><span class="grad">SQL</span> Trainer</h1>
-    <p>17 adım · gerçek SQLite tarayıcıda çalışır</p>
-  </div>
-  <div id="rana-tag">🐬 Veri Mühendisliği 3. sınıf · Rana için özel</div>
-  <div id="progress-bar-track"><div id="progress-bar-fill"></div></div>
-  <div id="lesson-list"></div>
-  <div id="sidebar-footer">
-    <button id="reset-btn" onclick="resetProgress()">↺ İlerlemeyi sıfırla</button>
-  </div>
-</div>
-
-<div id="main">
-  <div id="topbar">
-    <div id="lesson-title"></div>
-    <div id="topbar-right">
-      <div id="progress-label"></div>
-      <button id="theme-toggle" onclick="toggleTheme()" title="Açık/koyu tema">🌙</button>
+  <div id="sidebar">
+    <div id="brand">
+      <h1><span class="grad">SQL</span> Trainer</h1>
+      <p>17 adım · gerçek SQLite tarayıcıda çalışır</p>
+    </div>
+    <div id="rana-tag">🐬 Veri Mühendisliği 3. sınıf · Rana için özel</div>
+    <div id="progress-bar-track">
+      <div id="progress-bar-fill"></div>
+    </div>
+    <div id="lesson-list"></div>
+    <div id="sidebar-footer">
+      <button id="reset-btn" onclick="resetProgress()">↺ İlerlemeyi sıfırla</button>
     </div>
   </div>
-  <div id="content">
-    <div id="completion-banner">🎉 <b>Tebrikler Rana! 17 dersin tamamını bitirdin!</b><br>SELECT'ten pencere fonksiyonlarına kadar öğrendin — bir veri mühendisinin günlükte karşılaşacağı çoğu SQL yeter, bu temel sağlam. Aşağıdan sertifikanı alabilirsin. 💜</div>
 
-    <div id="certificate-section">
-      <h3>🎓 Sertifikani al</h3>
-      <div class="cert-form">
-        <input id="cert-name-input" type="text" placeholder="Sertifikaya yazılacak isim" maxlength="60">
-        <button onclick="generateCertificate()">Sertifika Oluştur</button>
+  <div id="main">
+    <div id="topbar">
+      <div id="lesson-title"></div>
+      <div id="topbar-right">
+        <div id="progress-label"></div>
+        <button id="theme-toggle" onclick="toggleTheme()" title="Açık/koyu tema">🌙</button>
       </div>
-      <div id="cert-preview-wrap">
-        <canvas id="cert-canvas"></canvas>
-        <div id="cert-download-row">
-          <button class="secondary" onclick="downloadCertPNG()">⬇ PNG indir</button>
-          <button class="secondary" onclick="downloadCertPDF()">⬇ PDF indir</button>
+    </div>
+    <div id="content">
+      <div id="completion-banner">🎉 <b>Tebrikler Rana! 17 dersin tamamını bitirdin!</b><br>SELECT'ten pencere
+        fonksiyonlarına kadar öğrendin — bir veri mühendisinin günlükte karşılaşacağı çoğu SQL yeter, bu temel sağlam.
+        Aşağıdan sertifikanı alabilirsin. 💜</div>
+
+      <div id="certificate-section">
+        <h3>🎓 Sertifikani al</h3>
+        <div class="cert-form">
+          <input id="cert-name-input" type="text" placeholder="Sertifikaya yazılacak isim" maxlength="60">
+          <button onclick="generateCertificate()">Sertifika Oluştur</button>
+        </div>
+        <div id="cert-preview-wrap">
+          <canvas id="cert-canvas"></canvas>
+          <div id="cert-download-row">
+            <button class="secondary" onclick="downloadCertPNG()">⬇ PNG indir</button>
+            <button class="secondary" onclick="downloadCertPDF()">⬇ PDF indir</button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <span class="schema-toggle" onclick="toggleSchema()">▸ örnek veritabanı şemasını göster</span>
-    <div id="schema-box"></div>
+      <span class="schema-toggle" onclick="toggleSchema()">▸ örnek veritabanı şemasını göster</span>
+      <div id="schema-box"></div>
 
-    <div class="concept" id="concept-box"></div>
-    <div id="rana-note-box" class="rana-note"></div>
-    <div class="task" id="task-box"></div>
+      <div class="concept" id="concept-box"></div>
+      <div id="rana-note-box" class="rana-note"></div>
+      <div class="task" id="task-box"></div>
 
-    <textarea id="editor" spellcheck="false"></textarea>
-    <div class="editor-hint">İpucu: sorgunu çalıştırmak için <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (veya Mac'te <kbd>Cmd</kbd>+<kbd>Enter</kbd>).</div>
+      <textarea id="editor" spellcheck="false"></textarea>
+      <div class="editor-hint">İpucu: sorgunu çalıştırmak için <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (veya Mac'te
+        <kbd>Cmd</kbd>+<kbd>Enter</kbd>).
+      </div>
 
-    <div class="btnrow">
-      <button onclick="runQuery()">▶ Sorguyu Çalıştır</button>
-      <button class="secondary" onclick="checkAnswer()">✓ Cevabı Kontrol Et</button>
-      <button class="secondary" onclick="toggleHint()">💡 İpucu</button>
-      <button class="secondary" onclick="showSolution()">Çözümü Göster</button>
-    </div>
-    <div id="hint"></div>
+      <div class="btnrow">
+        <button onclick="runQuery()">▶ Sorguyu Çalıştır</button>
+        <button class="secondary" onclick="checkAnswer()">✓ Cevabı Kontrol Et</button>
+        <button class="secondary" onclick="toggleHint()">💡 İpucu</button>
+        <button class="secondary" onclick="showSolution()">Çözümü Göster</button>
+      </div>
+      <div id="hint"></div>
 
-    <div id="verdict"></div>
-    <div id="result-wrap">
-      <div id="err"></div>
-      <div id="row-count"></div>
-      <div id="result-table"></div>
-    </div>
+      <div id="verdict"></div>
+      <div id="result-wrap">
+        <div id="err"></div>
+        <div id="row-count"></div>
+        <div id="result-table"></div>
+      </div>
 
-    <div class="nav-footer">
-      <button class="secondary" onclick="prevLesson()">← Önceki</button>
-      <button onclick="nextLesson()">Sonraki Ders →</button>
+      <div class="nav-footer">
+        <button class="secondary" onclick="prevLesson()">← Önceki</button>
+        <button onclick="nextLesson()">Sonraki Ders →</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="obs-overlay" onclick="if(event.target===this)closeObs()">
-  <div id="obs-panel">
-    <button class="obs-close" onclick="closeObs()">×</button>
-    <h2>🐬 Rana'nın İlerleme Gözlem Paneli</h2>
-    <div class="obs-sub">Dayısı için · erişim: <code>Ctrl+Shift+G</code> veya URL sonuna <code>#gozlem</code> · veriler sadece bu tarayıcıda saklanır</div>
-    <div id="obs-body"></div>
+  <div id="obs-overlay" onclick="if(event.target===this)closeObs()">
+    <div id="obs-panel">
+      <button class="obs-close" onclick="closeObs()">×</button>
+      <h2>🐬 Rana'nın İlerleme Gözlem Paneli</h2>
+      <div class="obs-sub">Dayısı için · erişim: <code>Ctrl+Shift+G</code> veya URL sonuna <code>#gozlem</code> ·
+        veriler sadece bu tarayıcıda saklanır</div>
+      <div id="obs-body"></div>
+    </div>
   </div>
-</div>
 
-<script>
-/* ---------- örnek veritabanı ---------- */
-const SCHEMA_SQL = `
+  <script>
+    /* ---------- örnek veritabanı ---------- */
+    const SCHEMA_SQL = `
 CREATE TABLE customers (
   customer_id INTEGER PRIMARY KEY,
   name TEXT, country TEXT, signup_date TEXT
@@ -321,9 +894,10 @@ CREATE TABLE order_items (
   order_item_id INTEGER PRIMARY KEY,
   order_id INTEGER, product_id INTEGER, quantity INTEGER
 );
-CREATE TABLE employees (
-  employee_id INTEGER PRIMARY KEY,
-  name TEXT, title TEXT, manager_id INTEGER
+CREATE TABLE flights (
+  flight_id INTEGER PRIMARY KEY,
+  departure TEXT,
+  arrival TEXT
 );
 
 INSERT INTO customers VALUES
@@ -381,912 +955,916 @@ INSERT INTO order_items VALUES
  (26,16,5,1),(27,17,9,1),(28,17,1,2),(29,18,2,1),(30,18,10,3),
  (31,19,8,1),(32,19,3,1),(33,20,7,1),(34,20,6,1);
 
-INSERT INTO employees VALUES
- (1,'Selin Demir','CEO',NULL),
- (2,'Ahmet Yilmaz','CTO',1),
- (3,'Zeynep Kara','Veri Lideri',2),
- (4,'Mert Celik','Veri Muhendisi',3),
- (5,'Elif Sahin','Veri Analisti',3),
- (6,'Can Aydin','Backend Gelistirici',2);
+INSERT INTO flights VALUES
+ (1,'İstanbul','Münih'),
+ (2,'Münih','New York'),
+ (3,'İstanbul','Roma'),
+ (4,'Roma','New York'),
+ (5,'Paris','Londra'),
+ (6,'Londra','Tokyo');
 `;
 
-/* ---------- dersler (basitten zora) ---------- */
-const LESSONS = [
-{
-  id:'select', difficulty:'beginner', title:'1. SELECT & LIMIT',
-  concept:`<h2>SELECT temelleri</h2>
+    /* ---------- dersler (basitten zora) ---------- */
+    const LESSONS = [
+      {
+        id: 'select', difficulty: 'beginner', title: '1. SELECT & LIMIT',
+        concept: `<h2>SELECT temelleri</h2>
     <p>Her SQL sorgusu <code>SELECT</code> ile başlar (hangi sütunlar) ve <code>FROM</code> ile devam eder (hangi tablo).
     <code>LIMIT</code> kaç satır döneceğini sınırlar.</p>
     <pre>SELECT sütun1, sütun2 FROM tablo_adi LIMIT 5;</pre>
     <p><code>SELECT *</code> tüm sütunları getirir; ama alışkanlık olarak sadece lazım olan sütunları seçmek daha iyidir.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Bu konu veri mühendisliğinde her gün karşına çıkacak. <code>SELECT *</code> cazip görünür ama büyük tablolarda gereksiz veri taşır; üreette sadece gereken sütunu çekmek bir alışkanlık olsun!`,
-  task:'<code>customers</code> tablosundan <b>name</b> ve <b>country</b> sütunlarını seç; en fazla <b>5 satır</b> dönsün.',
-  hint:'SELECT name, country FROM customers LIMIT 5;',
-  solution:'SELECT name, country FROM customers LIMIT 5;',
-  ignoreOrder:false
-},
-{
-  id:'where', difficulty:'beginner', title:'2. WHERE ile filtreleme',
-  concept:`<h2>Satır filtreleme: WHERE</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Bu konu veri mühendisliğinde her gün karşına çıkacak. <code>SELECT *</code> cazip görünür ama büyük tablolarda gereksiz veri taşır; üretimde sadece gereken sütunu çekmek bir alışkanlık olsun!`,
+        task: '<code>customers</code> tablosundan <b>name</b> ve <b>country</b> sütunlarını seç; en fazla <b>5 satır</b> dönsün.',
+        hint: 'SELECT name, country FROM customers LIMIT 5;',
+        solution: 'SELECT name, country FROM customers LIMIT 5;',
+        ignoreOrder: false
+      },
+      {
+        id: 'where', difficulty: 'beginner', title: '2. WHERE ile filtreleme',
+        concept: `<h2>Satır filtreleme: WHERE</h2>
     <p><code>WHERE</code> dönecek satırları filtreler. Koşulları <code>AND</code> / <code>OR</code> ile birleştirebilirsin.</p>
     <pre>SELECT * FROM tablo_adi WHERE kosul1 AND kosul2;</pre>
     <p>Metin değerlerini tek tırnak içinde yaz: <code>'Electronics'</code>. Sayılarda tırnak yok: <code>50</code>.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Metin mi sayı mı? Metin → tek tırnak <code>'...'</code>, sayı → tırnaksız. <code>status = completed</code> yazarsan hata alırsın; doğrusu <code>status = 'completed'</code>.`,
-  task:"<code>Electronics</code> kategorisinde, fiyatı <b>50'nin altında</b> olan ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.",
-  hint:"SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
-  solution:"SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
-  ignoreOrder:true
-},
-{
-  id:'orderby', difficulty:'beginner', title:'3. ORDER BY ile sıralama',
-  concept:`<h2>Sıralama: ORDER BY</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Metin mi sayı mı? Metin → tek tırnak <code>'...'</code>, sayı → tırnaksız. <code>status = completed</code> yazarsan hata alırsın; doğrusu <code>status = 'completed'</code>.`,
+        task: "<code>Electronics</code> kategorisinde, fiyatı <b>50'nin altında</b> olan ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.",
+        hint: "SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
+        solution: "SELECT name, price FROM products WHERE category = 'Electronics' AND price < 50;",
+        ignoreOrder: true
+      },
+      {
+        id: 'orderby', difficulty: 'beginner', title: '3. ORDER BY ile sıralama',
+        concept: `<h2>Sıralama: ORDER BY</h2>
     <p><code>ORDER BY sütun DESC</code> yüksekten düşüğe sıralar. <code>DESC</code>'i kaldırırsan (veya <code>ASC</code> yazarsan) küçükten büyüğe sıralar.</p>
     <pre>SELECT * FROM tablo_adi ORDER BY sütun DESC;</pre>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Bu derste <b>sıra önemli</b>! Çünkü sıralama isteniyor. Bu yüzden "Check" sıralamayı da kontrol edecek. Diğer derslerde genelde sıra önemli değildir.`,
-  task:'Tüm ürünlerin <b>adını</b> ve <b>fiyatını</b>, <b>en pahalıdan en ucuza</b> sırala.',
-  hint:'SELECT name, price FROM products ORDER BY price DESC;',
-  solution:'SELECT name, price FROM products ORDER BY price DESC;',
-  ignoreOrder:false
-},
-{
-  id:'distinct', difficulty:'beginner', title:'4. DISTINCT ile tekrarsız değerler',
-  concept:`<h2>Tekrarları eleme: DISTINCT</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Bu derste <b>sıra önemli</b>! Çünkü sıralama isteniyor. Bu yüzden "Check" sıralamayı da kontrol edecek. Diğer derslerde genelde sıra önemli değildir.`,
+        task: 'Tüm ürünlerin <b>adını</b> ve <b>fiyatını</b>, <b>en pahalıdan en ucuza</b> sırala.',
+        hint: 'SELECT name, price FROM products ORDER BY price DESC;',
+        solution: 'SELECT name, price FROM products ORDER BY price DESC;',
+        ignoreOrder: false
+      },
+      {
+        id: 'distinct', difficulty: 'beginner', title: '4. DISTINCT ile tekrarsız değerler',
+        concept: `<h2>Tekrarları eleme: DISTINCT</h2>
     <p>Bir sütundaki <b>benzersiz</b> değerleri görmek istiyorsan <code>SELECT DISTINCT</code> kullan.</p>
     <pre>SELECT DISTINCT sütun FROM tablo_adi;</pre>
     <p>Örneğin tabloda hangi kategoriler var? Tekrarlar olmadan tek bir liste.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div><code>DISTINCT</code> sonuçların sırasını garanti etmez. O yüzden bu derste sıralama kontrol edilmez — sen yine de doğru değerleri döndürmen yeterli.`,
-  task:'Ürünlerdeki <b>benzersiz kategorileri</b> (tekrarsız) listele.',
-  hint:'SELECT DISTINCT category FROM products;',
-  solution:'SELECT DISTINCT category FROM products;',
-  ignoreOrder:true
-},
-{
-  id:'aggregate', difficulty:'beginner', title:'5. Toplama fonksiyonları (Aggregates)',
-  concept:`<h2>Aggregate fonksiyonlar</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div><code>DISTINCT</code> sonuçların sırasını garanti etmez. O yüzden bu derste sıralama kontrol edilmez — Senin yine de doğru değerleri döndürmen yeterli.`,
+        task: 'Ürünlerdeki <b>benzersiz kategorileri</b> (tekrarsız) listele.',
+        hint: 'SELECT DISTINCT category FROM products;',
+        solution: 'SELECT DISTINCT category FROM products;',
+        ignoreOrder: true
+      },
+      {
+        id: 'aggregate', difficulty: 'beginner', title: '5. Toplama fonksiyonları (Aggregates)',
+        concept: `<h2>Aggregate fonksiyonlar</h2>
     <p><code>COUNT()</code>, <code>SUM()</code>, <code>AVG()</code>, <code>MIN()</code>, <code>MAX()</code> birçok satırı tek bir özet değere dönüştürür.</p>
     <pre>SELECT COUNT(*), AVG(sütun) FROM tablo_adi;</pre>
     <p>Sonuçlara isim vermek için <code>AS</code> kullan: <code>AVG(price) AS avg_price</code>.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div><code>COUNT(*)</code> tüm satırları sayar; <code>COUNT(sütun)</code> ise o sütundaki <b>NULL olmayan</b> değerleri sayar. Farkını unutma, mülakatlarda sorarlar!`,
-  task:'<b>Toplam ürün sayısını</b> (<code>total_products</code>) ve tüm ürünlerin <b>ortalama fiyatını</b> (<code>avg_price</code>) tek sorguda döndür.',
-  hint:'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
-  solution:'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
-  ignoreOrder:true
-},
-{
-  id:'groupby', difficulty:'intermediate', title:'6. GROUP BY & HAVING',
-  concept:`<h2>Satırları gruplama</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div><code>COUNT(*)</code> tüm satırları sayar; <code>COUNT(sütun)</code> ise o sütundaki <b>NULL olmayan</b> değerleri sayar. Farkını unutma, işe alım mülakatlarında sorarlar!`,
+        task: '<b>Toplam ürün sayısını</b> (<code>total_products</code>) ve tüm ürünlerin <b>ortalama fiyatını</b> (<code>avg_price</code>) tek sorguda döndür.',
+        hint: 'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
+        solution: 'SELECT COUNT(*) AS total_products, AVG(price) AS avg_price FROM products;',
+        ignoreOrder: true
+      },
+      {
+        id: 'groupby', difficulty: 'intermediate', title: '6. GROUP BY & HAVING',
+        concept: `<h2>Satırları gruplama</h2>
     <p><code>GROUP BY</code> aynı değere sahip satırları gruplar ve her grup için aggregate hesaplar. <code>HAVING</code> grupları <b>aggregateden sonra</b> filtreler (<code>WHERE</code> ise aggregateten önce satırları filtreler).</p>
     <pre>SELECT category, COUNT(*) FROM products GROUP BY category HAVING COUNT(*) > 2;</pre>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>En sık hata: <code>GROUP BY</code> varken <code>SELECT</code>'e gruplanmamış bir sütun koymak. SELECT'e ya grupladığın sütunu ya da aggregate fonksiyonunu koyabilirsin, başka değil. Bu kural veri mühendisliğinde altın kural!`,
-  task:"Her <b>kategori</b> için ürün sayısını (<code>num_products</code>) ve ortalama fiyatı (<code>avg_price</code>) göster. Sadece <b>2'den fazla ürünü</b> olan kategoriler gelsin.",
-  hint:'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
-  solution:'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
-  ignoreOrder:true
-},
-{
-  id:'case', difficulty:'intermediate', title:'7. CASE WHEN ile koşullu sütun',
-  concept:`<h2>Koşullu ifade: CASE WHEN</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>En sık hata: <code>GROUP BY</code> varken <code>SELECT</code>'e gruplanmamış bir sütun koymak. SELECT'e ya grupladığın sütunu ya da aggregate fonksiyonunu koyabilirsin, başka bir şey değil. Bu kural veri mühendisliğinde altın kural!`,
+        task: "Her <b>kategori</b> için ürün sayısını (<code>num_products</code>) ve ortalama fiyatı (<code>avg_price</code>) göster. Sadece <b>2'den fazla ürünü</b> olan kategoriler gelsin.",
+        hint: 'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
+        solution: 'SELECT category, COUNT(*) AS num_products, AVG(price) AS avg_price FROM products GROUP BY category HAVING COUNT(*) > 2;',
+        ignoreOrder: true
+      },
+      {
+        id: 'case', difficulty: 'intermediate', title: '7. CASE WHEN ile koşullu sütun',
+        concept: `<h2>Koşullu ifade: CASE WHEN</h2>
     <p><code>CASE WHEN ... THEN ... ELSE ... END</code> satır satır mantık uygulayarak yeni bir sütun üretir. Birçok dildeki if-else gibidir.</p>
     <pre>SELECT name, CASE WHEN price >= 100 THEN 'Pahalı' ELSE 'Uygun' END AS sinif FROM products;</pre>
     <p>Sonuca isim vermek için <code>AS</code> kullan.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Veri boru hatlarında (pipeline) veriyi sınıflandırmak için CASE çok işe yarar. ETL'de sürekli kullanacaksın. Sütuna <code>AS</code> ile isim vermeyi unutma, yoksa kontrol edemez!`,
-  task:"Her ürünün <b>adını</b>, <b>fiyatını</b> ve bir <b>sinif</b> sütunu üret: fiyat <code>&gt;= 100</code> ise <code>'Pahalı'</code>, değilse <code>'Uygun'</code>. Sütunun adı <code>sinif</code> olsun.",
-  hint:"SELECT name, price, CASE WHEN price >= 100 THEN 'Pahalı' ELSE 'Uygun' END AS sinif FROM products;",
-  solution:"SELECT name, price, CASE WHEN price >= 100 THEN 'Pahalı' ELSE 'Uygun' END AS sinif FROM products;",
-  ignoreOrder:false
-},
-{
-  id:'like', difficulty:'intermediate', title:'8. LIKE ile desen eşleme',
-  concept:`<h2>Metin arama: LIKE</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Veri pipeline'larında veriyi sınıflandırmak için CASE çok işe yarar. ETL'de sürekli kullanacaksın. Sütuna <code>AS</code> ile isim vermeyi unutma, yoksa kontrol edilemez!`,
+        task: "Her ürünün <b>adını</b>, <b>fiyatını</b> ve bir <b>sinif</b> sütunu üret: fiyat <code>&gt;= 100</code> ise <code>'Pahalı'</code>, değilse <code>'Uygun'</code>. Sütunun adı <code>sinif</code> olsun.",
+        hint: "SELECT name, price, CASE WHEN price >= 100 THEN 'Pahalı' ELSE 'Uygun' END AS sinif FROM products;",
+        solution: "SELECT name, price, CASE WHEN price >= 100 THEN 'Pahalı' ELSE 'Uygun' END AS sinif FROM products;",
+        ignoreOrder: false
+      },
+      {
+        id: 'like', difficulty: 'intermediate', title: '8. LIKE ile desen eşleme',
+        concept: `<h2>Metin arama: LIKE</h2>
     <p><code>LIKE</code> ile metin içinde desen ararsın. <code>%</code> "herhangi bir metin", <code>_</code> "tek bir karakter" anlamına gelir.</p>
     <pre>SELECT * FROM products WHERE name LIKE '%Desk%';\nSELECT * FROM customers WHERE name LIKE '_a%';</pre>
     <p><code>'%Desk%'</code>: içinde "Desk" geçen her şey. <code>'_a%'</code>: 2. harfi "a" olan isimler.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Büyük/küçük harf? SQLite'da <code>LIKE</code> büyük-küçük harf duyarlı <b>değildir</code>. Ama PostgreSQL gibi bazı veritabanlarında duyarlıdır; orada <code>ILIKE</code> kullanılır. Bu fark mülakatlarda gelir!`,
-  task:"Adında <b>'Desk'</b> geçen ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.",
-  hint:"SELECT name, price FROM products WHERE name LIKE '%Desk%';",
-  solution:"SELECT name, price FROM products WHERE name LIKE '%Desk%';",
-  ignoreOrder:true
-},
-{
-  id:'join', difficulty:'intermediate', title:'9. INNER JOIN (iki tablo birleştirme)',
-  concept:`<h2>Tabloları birleştirme: JOIN</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Büyük/küçük harf? SQLite'da <code>LIKE</code> büyük-küçük harf duyarlı <b>değildir</code>. Ama PostgreSQL gibi bazı veritabanlarında duyarlıdır; orada <code>ILIKE</code> kullanılır. Bu fark mülakatlarda gelir!`,
+        task: "Adında <b>'Desk'</b> geçen ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.",
+        hint: "SELECT name, price FROM products WHERE name LIKE '%Desk%';",
+        solution: "SELECT name, price FROM products WHERE name LIKE '%Desk%';",
+        ignoreOrder: true
+      },
+      {
+        id: 'join', difficulty: 'intermediate', title: '9. INNER JOIN (iki tablo birleştirme)',
+        concept: `<h2>Tabloları birleştirme: JOIN</h2>
     <p><code>JOIN ... ON</code> ortak bir anahtar üzerinden iki tabloyu yan yana getirir. Burada her siparişin <code>customer_id</code>'si bir müşterinin <code>customer_id</code>'siyle eşleşir.</p>
     <pre>SELECT a.sütun, b.sütun FROM tablo_a a JOIN tablo_b b ON a.anahtar = b.anahtar;</pre>
     <p>Tablolara kısa ad (alias) vermek sorguyu okunur kılar: <code>orders o</code>, <code>customers c</code>.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>JOIN, veri mühendisinin en sık kullandığı şey. Sıfır data mühendisi "her veri bir tabloda olmaz" der. Eşleşme anahtarını doğru seçmek (ON ...) çok kritik — yanlış anahtar sessizce yanlış sonuç üretir!`,
-  task:'Her siparişin <b>order_id</b>, <b>order_date</b> ve o siparişi veren müşterinin <b>adını (name)</b> listele.',
-  hint:'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
-  solution:'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
-  ignoreOrder:true
-},
-{
-  id:'leftjoin', difficulty:'intermediate', title:'10. LEFT JOIN (eksikleri de getirme)',
-  concept:`<h2>LEFT JOIN</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>JOIN, veri mühendisinin en sık kullandığı şey. Acemi bir veri mühendisi "her veri bir tabloda olmaz" der. Eşleşme anahtarını doğru seçmek (ON ...) çok kritik — yanlış anahtar sessizce yanlış sonuç üretir!`,
+        task: 'Her siparişin <b>order_id</b>, <b>order_date</b> ve o siparişi veren müşterinin <b>adını (name)</b> listele.',
+        hint: 'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
+        solution: 'SELECT o.order_id, o.order_date, c.name FROM orders o JOIN customers c ON o.customer_id = c.customer_id;',
+        ignoreOrder: true
+      },
+      {
+        id: 'leftjoin', difficulty: 'intermediate', title: '10. LEFT JOIN (eksikleri de getirme)',
+        concept: `<h2>LEFT JOIN</h2>
     <p><code>LEFT JOIN</code> sol tablodaki <b>tüm satırları</b> tutar; sağ tabloda eşleşme yoksa bile (o zaman değerler <code>NULL</code> gelir). "Sıfır siparişi olanlar dahil" gibi durumlar için birebir.</p>
     <pre>SELECT a.sütun FROM tablo_a a LEFT JOIN tablo_b b ON a.anahtar = b.anahtar;</pre>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>"Kaç müşteri <b>hiç</b> sipariş vermedi?" gibi sorularda INNER JOIN eksik tutar, LEFT JOIN gerekir. Burada NULL'lar senin dostun — onları sayarken <code>COUNT(o.order_id)</code> kullan, <code>COUNT(*)</code> değil (çünkü NULL satırları 1 sayar)!`,
-  task:'Her müşterinin <b>adını</b> ve <b>toplam sipariş sayısını</b> (<code>order_count</code>) göster — <b>hiç siparişi olmayanlar da 0 olarak</b> listelensin.',
-  hint:'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
-  solution:'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
-  ignoreOrder:true
-},
-{
-  id:'coalesce', difficulty:'intermediate', title:'11. NULL ile başa çıkma: COALESCE',
-  concept:`<h2>NULL değerler ve COALESCE</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>"<b>Hiç</b> sipariş vermeyen kaç müşteri var?" gibi sorularda INNER JOIN eksik tutar, LEFT JOIN gerekir. Burada NULL'lar senin dostun — onları sayarken <code>COUNT(o.order_id)</code> kullan, <code>COUNT(*)</code> değil (çünkü NULL satırları 1 sayar)!`,
+        task: 'Her müşterinin <b>adını</b> ve <b>toplam sipariş sayısını</b> (<code>order_count</code>) göster — <b>hiç siparişi olmayanlar da 0 olarak</b> listelensin.',
+        hint: 'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
+        solution: 'SELECT c.name, COUNT(o.order_id) AS order_count FROM customers c LEFT JOIN orders o ON c.customer_id = o.customer_id GROUP BY c.customer_id, c.name;',
+        ignoreOrder: true
+      },
+      {
+        id: 'coalesce', difficulty: 'intermediate', title: '11. NULL ile başa çıkma: COALESCE',
+        concept: `<h2>NULL değerler ve COALESCE</h2>
     <p><code>NULL</code> "bilinmiyor/boş" demektir; <code>0</code> veya boş metin değildir. <code>COALESCE(a, b)</code> ilk NULL olmayan değeri döndürür — yani <code>a</code> NULL ise <code>b</code> verir.</p>
     <pre>SELECT name, COALESCE(discount, 0) AS discount FROM products;</pre>
     <p>Aritmetikte NULL bulaşıcıdır: <code>price - discount</code> içinde discount NULL ise sonuç da NULL olur. Bu yüzden önce COALESCE!</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>NULL, veri dünyasının gizli düşmanıdır. Hesaplar bozar, aggregateler şaşar. Üreğinde NULL'ları hep <code>COALESCE</code> ya da <code>IFNULL</code> ile yedekle. Bu seni birçok baş ağrısından kurtarır!`,
-  task:'Her ürünün <b>adını</b>, <b>fiyatını</b> ve <b>discount</b> değerini göster; ama discount <code>NULL</code> ise <b>0</b> göstersin.',
-  hint:'SELECT name, price, COALESCE(discount, 0) AS discount FROM products;',
-  solution:'SELECT name, price, COALESCE(discount, 0) AS discount FROM products;',
-  ignoreOrder:false
-},
-{
-  id:'multijoin', difficulty:'intermediate', title:'12. Birden fazla JOIN',
-  concept:`<h2>Birden fazla tabloyu birleştirme</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>NULL, veri dünyasının gizli düşmanıdır. Hesapları bozar, aggregateler şaşar. Sorgularında NULL'ları hep <code>COALESCE</code> ya da <code>IFNULL</code> ile yedekle. Bu seni birçok baş ağrısından kurtarır! Dayım demişti dersin. :)`,
+        task: 'Her ürünün <b>adını</b>, <b>fiyatını</b> ve <b>discount</b> değerini göster; ama discount <code>NULL</code> ise <b>0</b> göstersin.',
+        hint: 'SELECT name, price, COALESCE(discount, 0) AS discount FROM products;',
+        solution: 'SELECT name, price, COALESCE(discount, 0) AS discount FROM products;',
+        ignoreOrder: false
+      },
+      {
+        id: 'multijoin', difficulty: 'intermediate', title: '12. Birden fazla JOIN',
+        concept: `<h2>Birden fazla tabloyu birleştirme</h2>
     <p>Birden fazla <code>JOIN</code>'i arka arkaya zincirleyebilirsin. Her JOIN, o ana kadar gelen sonuçlarla bir sonraki tabloyu eşleştirir.</p>
     <pre>SELECT ... FROM a JOIN b ON a.x=b.x JOIN c ON b.y=c.y;</pre>
     <p>Sipariş kalemi → sipariş → müşteri zinciri gibi veri modellerinde tipik.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Üç-dört tabloyu joinlemek günlük iş. Tavsiye: önce iki tabloyu joinle, doğru mu diye çalıştır; sonra üçüncüyü ekle. Hepsini bir kereye yazıp boğuşma — adım adım ilerle!`,
-  task:'Her sipariş kalemi için <b>order_id</b>, ürünün adı (<code>product</code>) ve o siparişi veren müşterinin adını (<code>customer</code>) listele. (order_items → products → orders → customers)',
-  hint:'SELECT oi.order_id, p.name AS product, c.name AS customer FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id;',
-  solution:'SELECT oi.order_id, p.name AS product, c.name AS customer FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id;',
-  ignoreOrder:true
-},
-{
-  id:'selfjoin', difficulty:'advanced', title:'13. Self JOIN (tabloyu kendisiyle)',
-  concept:`<h2>Self JOIN</h2>
-    <p>Bir tabloyu <b>kendisiyle</b> joinlersen, iki farklı kısa ad (alias) verirsin: biri çalışanı, diğeri yöneticiyi temsil eder. Aynı <code>employees</code> tablosu iki kez kullanılır.</p>
-    <pre>SELECT e.name, m.name FROM employees e JOIN employees m ON e.manager_id = m.employee_id;</pre>
-    <p>Organizasyon şeması, ağ/graflar, "önceki-sonraki" karşılaştırmaları için ideal.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Self JOIN kafa karıştırır ama çok güçlü. Aynı tabloyu iki farklı kişi gibi düşün: birisi <code>e</code> (çalışan), diğeri <code>m</code> (yönetici). CEO'nun yöneticisi NULL'dur; bu yüzden LEFT JOIN kullanırsan CEO da gelir.`,
-  task:'Her çalışanın adını (<code>calisan</code>) ve yöneticisinin adını (<code>yonetici</code>) listele. (Yöneticisi olmayan CEO da gelsin — <code>yonetici</code> NULL olabilir.)',
-  hint:'SELECT e.name AS calisan, m.name AS yonetici FROM employees e LEFT JOIN employees m ON e.manager_id = m.employee_id;',
-  solution:'SELECT e.name AS calisan, m.name AS yonetici FROM employees e LEFT JOIN employees m ON e.manager_id = m.employee_id;',
-  ignoreOrder:true
-},
-{
-  id:'subquery', difficulty:'advanced', title:'14. Alt sorgular (Subquery)',
-  concept:`<h2>Alt sorgular</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Üç-dört tabloyu joinlemek günlük basit bir iştir. Tavsiye: önce iki tabloyu joinle, doğru mu diye çalıştır; sonra üçüncüyü ekle. Hepsini bir kereye yazıp boğuşma — adım adım ilerle!`,
+        task: 'Her sipariş kalemi için <b>order_id</b>, ürünün adı (<code>product</code>) ve o siparişi veren müşterinin adını (<code>customer</code>) listele. (order_items → products → orders → customers)',
+        hint: 'SELECT oi.order_id, p.name AS product, c.name AS customer FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id;',
+        solution: 'SELECT oi.order_id, p.name AS product, c.name AS customer FROM order_items oi JOIN products p ON oi.product_id = p.product_id JOIN orders o ON oi.order_id = o.order_id JOIN customers c ON o.customer_id = c.customer_id;',
+        ignoreOrder: true
+      },
+      {
+        id: 'selfjoin', difficulty: 'advanced', title: '13. Self JOIN (tabloyu kendisiyle)',
+        concept: `<h2>Self JOIN</h2>
+    <p>Bir tabloyu <b>kendisiyle</b> birleştirmek (Self JOIN), satırlar arasındaki ilişkileri bulmak için çok güçlüdür. Aynı tabloyu iki farklı kopya gibi düşünüp iki kısa ad (alias) veririz.</p>
+    <pre>SELECT f1.departure, f1.arrival, f2.arrival FROM flights f1 JOIN flights f2 ON f1.arrival = f2.departure;</pre>
+    <p>Ağ/graf verileri, aktarmalı yollar veya "önceki-sonraki" karşılaştırmaları için idealdir.</p>`,
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Self JOIN kafa karıştırır ama mantığı çok keyiflidir. Aynı uçuş tablosunu <code>f1</code> (ilk uçuş) ve <code>f2</code> (sonraki uçuş) olarak iki kez açtığını hayal et. İlk uçuşun varışı (arrival), ikinci uçuşun kalkışı (departure) ile eşleşir. Aktarması olmayan son uçuşların da listede kalması için <code>LEFT JOIN</code> kullanırız, böylece sonraki hedefleri <code>NULL</code> görünür!`,
+        task: 'Her uçuşun <b>nereden</b> ve <b>nereye</b> olduğunu göster; ayrıca eğer o varış yerinden başlayan bir aktarma uçuşu varsa onun da varış noktasını <code>sonraki_hedef</code> olarak listele. (Sonraki uçuşu olmayanlar da listede kalsın — <code>sonraki_hedef</code> <b>NULL</b> olarak gelecektir.)',
+        hint: 'SELECT f1.departure AS nereden, f1.arrival AS nereye, f2.arrival AS sonraki_hedef FROM flights f1 LEFT JOIN flights f2 ON f1.arrival = f2.departure;',
+        solution: 'SELECT f1.departure AS nereden, f1.arrival AS nereye, f2.arrival AS sonraki_hedef FROM flights f1 LEFT JOIN flights f2 ON f1.arrival = f2.departure;',
+        ignoreOrder: true
+      },
+      {
+        id: 'subquery', difficulty: 'advanced', title: '14. Alt sorgular (Subquery)',
+        concept: `<h2>Alt sorgular</h2>
     <p>Bir sorgu, genelde <code>WHERE</code> içinde, filtreleme için bir değer hesaplamak amacıyla başka bir sorgunun içine gömülebilir.</p>
     <pre>SELECT * FROM tablo WHERE sütun &gt; (SELECT AVG(sütun) FROM tablo);</pre>
     <p>İçteki sorgu önce çalışır ve bir değer üretir; dıştaki sorgu bu değeri kullanır.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Alt sorgu güçlüdür ama büyük veride yavaş olabilir. İlerde bunu JOIN veya CTE ile yazmanın daha hızlı olduğunu göreceksin. Şimdilik mantığını kavramak önemli.`,
-  task:'Fiyatı <b>tüm ürünlerin ortalama fiyatının üstünde</b> olan ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.',
-  hint:'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
-  solution:'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
-  ignoreOrder:true
-},
-{
-  id:'union', difficulty:'advanced', title:'15. UNION ile sonuçları birleştirme',
-  concept:`<h2>Sonuç kümelerini birleştirme: UNION</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Alt sorgu güçlüdür ama büyük veride yavaş olabilir. İlerde bunu JOIN veya CTE ile yazmanın daha hızlı olduğunu göreceksin. Şimdilik mantığını kavramak önemli.`,
+        task: 'Fiyatı <b>tüm ürünlerin ortalama fiyatının üstünde</b> olan ürünlerin <b>adını</b> ve <b>fiyatını</b> bul.',
+        hint: 'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
+        solution: 'SELECT name, price FROM products WHERE price > (SELECT AVG(price) FROM products);',
+        ignoreOrder: true
+      },
+      {
+        id: 'union', difficulty: 'advanced', title: '15. UNION ile sonuçları birleştirme',
+        concept: `<h2>Sonuç kümelerini birleştirme: UNION</h2>
     <p><code>UNION</code> iki sorgunun sonuçlarını alt alta tek liste yapar. İki sorgu <b>aynı sayıda ve uyumlu sütun</b> döndürmelidir. <code>UNION</code> tekrarları eler; <code>UNION ALL</code> tüm satırları olduğu gibi tutar (daha hızlı).</p>
     <pre>SELECT name FROM a WHERE ...\nUNION\nSELECT name FROM b WHERE ...;</pre>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>UNION'da sütun sayısı eşit olmalı. Tekrarları elediği için yavaş olabilir; eminsen <code>UNION ALL</code> kullanmak daha hızlıdır. Performans için bu ayrım önemli!`,
-  task:"<b>Türkiye'deki müşterilerin adları</b> ile <b>Electronics kategorisindeki ürünlerin adlarını</b> tek bir listede (tekrarsız) birleştir.",
-  hint:"SELECT name FROM customers WHERE country = 'Turkey' UNION SELECT name FROM products WHERE category = 'Electronics';",
-  solution:"SELECT name FROM customers WHERE country = 'Turkey' UNION SELECT name FROM products WHERE category = 'Electronics';",
-  ignoreOrder:true
-},
-{
-  id:'cte', difficulty:'advanced', title:'16. CTE (WITH ile okunabilir sorgu)',
-  concept:`<h2>Ortak Tablo İfadesi (CTE)</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>UNION'da sütun sayısı eşit olmalı. Tekrarları elediği için yavaş olabilir; eminsen <code>UNION ALL</code> kullanmak daha hızlıdır. Performans için bu ayrım önemli!`,
+        task: "<b>Türkiye'deki müşterilerin adları</b> ile <b>Electronics kategorisindeki ürünlerin adlarını</b> tek bir listede (tekrarsız) birleştir.",
+        hint: "SELECT name FROM customers WHERE country = 'Turkey' UNION SELECT name FROM products WHERE category = 'Electronics';",
+        solution: "SELECT name FROM customers WHERE country = 'Turkey' UNION SELECT name FROM products WHERE category = 'Electronics';",
+        ignoreOrder: true
+      },
+      {
+        id: 'cte', difficulty: 'advanced', title: '16. CTE (WITH ile okunabilir sorgu)',
+        concept: `<h2>Ortak Tablo İfadesi (CTE)</h2>
     <p><code>WITH ad AS (...)</code> geçici, isimli bir sonuç kümesi tanımlar; ardından onu sorgulayabilirsin. Karmaşık sorguyu okunaklı adımlara bölmek için harika.</p>
     <pre>WITH toplamlar AS (SELECT ...)\nSELECT * FROM toplamlar WHERE ...;</pre>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Veri mühendisliğinde CTE'nin yeri ayrı. Karmaşık sorguyu iç içe yazmak yerine CTE ile adımlara bölmek kodu okunur ve bakımı kolay yapar. Ekibinde herkes CTE yazar — sen de alış!`,
-  task:"<code>order_totals</code> adında bir CTE ile her siparişin gelirini <code>SUM(quantity * price)</code> olarak hesapla (order_items → products join). Sonra sadece geliri <b>100'den büyük</b> olan siparişleri seç.",
-  hint:'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
-  solution:'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
-  ignoreOrder:true
-},
-{
-  id:'window', difficulty:'advanced', title:'17. Pencere fonksiyonları (Window functions)',
-  concept:`<h2>Pencere fonksiyonları</h2>
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Veri mühendisliğinde CTE'nin yeri ayrı. Karmaşık sorguyu iç içe yazmak yerine CTE ile adımlara bölmek kodu okunur ve bakımı kolay yapar. Ekibinde herkes CTE yazar — sen de alış!`,
+        task: "<code>order_totals</code> adında bir CTE ile her siparişin gelirini <code>SUM(quantity * price)</code> olarak hesapla (order_items → products join). Sonra sadece geliri <b>100'den büyük</b> olan siparişleri seç.",
+        hint: 'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
+        solution: 'WITH order_totals AS (SELECT oi.order_id, SUM(oi.quantity * p.price) AS revenue FROM order_items oi JOIN products p ON oi.product_id = p.product_id GROUP BY oi.order_id) SELECT * FROM order_totals WHERE revenue > 100;',
+        ignoreOrder: true
+      },
+      {
+        id: 'window', difficulty: 'advanced', title: '17. Pencere fonksiyonları (Window functions)',
+        concept: `<h2>Pencere fonksiyonları</h2>
     <p><code>RANK() OVER (PARTITION BY ... ORDER BY ...)</code> satırları gruplar içinde sıralar — ama <code>GROUP BY</code> gibi satırları daraltmaz; her satır için bir sıra değeri üretir.</p>
     <pre>SELECT sütun, RANK() OVER (PARTITION BY grup ORDER BY deger DESC) FROM tablo;</pre>
     <p>"Her kategorideki en pahalı 3 ürün" gibi işlerde vazgeçilmezdir.</p>`,
-  ranaNote:`<div class="rn-head">💜 Rana'ya Not</div>Pencere fonksiyonları veri analistliği ve mühendisliğinde "bilen" ile "bilmeyen"i ayıran konu. <code>PARTITION BY</code> = grup, <code>ORDER BY</code> = sıralama. RANK/DENSE_RANK/ROW_NUMBER farkını da araştır derim!`,
-  task:'Her ürünün <b>adını</b>, <b>kategorisini</b>, <b>fiyatını</b> ve kendi kategorisi içindeki sıralamasını (<code>price_rank</code>) göster. En pahalı = 1. sıra olsun (<code>RANK()</code> kullan).',
-  hint:'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
-  solution:'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
-  ignoreOrder:true
-}
-];
-
-/* ---------- uygulama durumu ---------- */
-let db, current = 0, cm;
-const progressKey = 'sqltrainer_progress';
-const themeKey = 'sqltrainer_theme';
-function loadProgress(){ try{ return JSON.parse(localStorage.getItem(progressKey))||{}; }catch(e){ return {}; } }
-function saveProgress(p){ localStorage.setItem(progressKey, JSON.stringify(p)); }
-
-/* ---------- GÖZLEM / ANALİTİK ---------- */
-const trackKey='sqltrainer_events';
-const timesKey='sqltracker_times';
-const firstSeenKey='sqltrainer_firstseen';
-function loadEvents(){ try{ return JSON.parse(localStorage.getItem(trackKey))||[]; }catch(e){ return []; } }
-function loadTimes(){ try{ return JSON.parse(localStorage.getItem(timesKey))||{}; }catch(e){ return {}; } }
-function saveTimes(t){ localStorage.setItem(timesKey, JSON.stringify(t)); }
-let times={};
-let activeLesson=null, lessonStartTs=null, focused=true;
-function tickTime(){
-  if(activeLesson && lessonStartTs && focused){
-    times[activeLesson]=(times[activeLesson]||0)+(Date.now()-lessonStartTs);
-    saveTimes(times);
-  }
-  lessonStartTs=Date.now();
-}
-function logEv(type,data){
-  const ev=loadEvents();
-  ev.push({ t:Date.now(), type, lesson:LESSONS[current]?LESSONS[current].id:null, data:data||{} });
-  if(ev.length>3000) ev.splice(0,ev.length-3000);
-  localStorage.setItem(trackKey,JSON.stringify(ev));
-}
-
-/* ---------- SENKRON (Rana → bulut, Dayı buluttan okur) ---------- */
-const syncStateKey='sqltrainer_sync_state';
-let syncState={lastSent:0,count:0,lastReason:'',cloudOk:null};
-function loadSyncState(){ try{ syncState=Object.assign(syncState, JSON.parse(localStorage.getItem(syncStateKey))||{}); }catch(e){} }
-function saveSyncState(){ localStorage.setItem(syncStateKey,JSON.stringify(syncState)); }
-/* Dayı modu: paneli açıp buluttan yükleyen cihaz, Rana'nın verisini üstüne yazmasın */
-function isObserver(){ return sessionStorage.getItem('observer')==='1'; }
-function collectPayload(reason){
-  const ev=loadEvents(); const prog=loadProgress();
-  const checks=ev.filter(e=>e.type==='check');
-  const passes=checks.filter(e=>e.data.pass);
-  const done=LESSONS.filter(l=>prog[l.id]).length;
-  return {
-    student:'Rana', sentAt:new Date().toISOString(), sentReason:reason||'periodic',
-    doneCount:done, total:LESSONS.length,
-    successRate: checks.length?Math.round(passes.length/checks.length*100):0,
-    totalRuns:ev.filter(e=>e.type==='query_run').length,
-    totalChecks:checks.length, totalPass:passes.length,
-    totalHints:ev.filter(e=>e.type==='hint_open').length,
-    totalSols:ev.filter(e=>e.type==='solution_show').length,
-    totalTime:Object.values(times).reduce((a,b)=>a+b,0),
-    lessons:LESSONS.map(l=>({id:l.id,title:l.title})),
-    times:times, progress:prog,
-    events:ev.slice(-150).map(e=>({t:new Date(e.t).toISOString(),type:e.type,lesson:e.lesson,data:e.data}))
-  };
-}
-function syncNow(reason){
-  if(isObserver()) return false; /* dayı cihazından gönderme */
-  const payload=collectPayload(reason);
-  const mark=(ok)=>{ syncState.lastSent=Date.now(); syncState.count++; syncState.lastReason=reason||''; syncState.cloudOk=ok; saveSyncState(); };
-  try{
-    fetch('api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),keepalive:true})
-      .then(r=>mark(r && r.ok)).catch(()=>mark(false));
-  }catch(e){ mark(false); }
-  return true;
-}
-function syncMaybe(reason){
-  if(isObserver()) return;
-  if(Date.now()-syncState.lastSent < 45000) return;
-  syncNow(reason);
-}
-
-/* ---------- tema ---------- */
-function applyTheme(theme){
-  document.documentElement.setAttribute('data-theme', theme);
-  document.getElementById('theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
-  const link = document.getElementById('cm-theme-link');
-  if(cm){
-    if(theme === 'dark'){ link.disabled = false; cm.setOption('theme','dracula'); }
-    else { cm.setOption('theme','default'); }
-  }
-  localStorage.setItem(themeKey, theme);
-}
-function toggleTheme(){
-  const cur = document.documentElement.getAttribute('data-theme') || 'dark';
-  logEv('theme_toggle',{to: cur==='dark'?'light':'dark'});
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
-}
-
-/* ---------- Rana mesajları & easter egg'ler ---------- */
-const PRAISE=[
-  'Aferin Rana! 💜','Harikasın Rana! 🐬','İşte bu! Veri mühendisi ruh! 🚀',
-  'Mükemmel Rana! Dayın gurur duyuyor 😎','Çok güzel! Böyle devam! ✨',
-  'Bravo! Bu konuyu ezbere değil, anlamışsın. 💪'
-];
-function randPraise(){ return PRAISE[Math.floor(Math.random()*PRAISE.length)]; }
-
-function confetti(){
-  const c=document.getElementById('confetti-canvas');
-  c.width=innerWidth; c.height=innerHeight;
-  const ctx=c.getContext('2d');
-  const colors=['#5b8cff','#8b6bff','#3ecf8e','#ff5c7c','#c9a227','#ffd1dc'];
-  const parts=[];
-  for(let i=0;i<150;i++){
-    parts.push({ x:innerWidth/2+(Math.random()-.5)*240, y:innerHeight*0.35,
-      vx:(Math.random()-.5)*9, vy:Math.random()*-11-4, g:0.25+Math.random()*0.2,
-      s:4+Math.random()*5, col:colors[(Math.random()*colors.length)|0],
-      rot:Math.random()*6.28, vr:(Math.random()-.5)*0.35 });
-  }
-  function frame(){
-    ctx.clearRect(0,0,c.width,c.height);
-    let alive=false;
-    parts.forEach(p=>{
-      p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.vx*=0.99; p.rot+=p.vr;
-      if(p.y<c.height+40){ alive=true;
-        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
-        ctx.fillStyle=p.col; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*1.6); ctx.restore();
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Pencere fonksiyonları veri analistliği ve mühendisliğinde "bilen" ile "bilmeyen"i ayıran konu. <code>PARTITION BY</code> = grup, <code>ORDER BY</code> = sıralama. RANK/DENSE_RANK/ROW_NUMBER farkını da araştır derim!`,
+        task: 'Her ürünün <b>adını</b>, <b>kategorisini</b>, <b>fiyatını</b> ve kendi kategorisi içindeki sıralamasını (<code>price_rank</code>) göster. En pahalı = 1. sıra olsun (<code>RANK()</code> kullan).',
+        hint: 'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
+        solution: 'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
+        ignoreOrder: true
       }
-    });
-    if(alive) requestAnimationFrame(frame); else ctx.clearRect(0,0,c.width,c.height);
-  }
-  frame();
-}
-function toast(msg,ms){
-  ms=ms||2600;
-  const box=document.getElementById('toast-box');
-  const d=document.createElement('div'); d.className='toast'; d.innerHTML=msg;
-  box.appendChild(d);
-  requestAnimationFrame(()=>d.classList.add('show'));
-  setTimeout(()=>{ d.classList.remove('show'); setTimeout(()=>d.remove(),300); }, ms);
-}
+    ];
 
-/* Konami kodu easter egg */
-(function(){
-  const seq=['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
-  let pos=0;
-  document.addEventListener('keydown',function(e){
-    const k=e.key.length===1?e.key.toLowerCase():e.key;
-    if(k===seq[pos]){ pos++; if(pos===seq.length){ pos=0; ranaEgg('konami'); } }
-    else pos=(k===seq[0]?1:0);
-  });
-})();
-function ranaEgg(kind){
-  logEv('easter_egg',{kind});
-  confetti();
-  if(kind==='konami') toast('🐬 Rana, sen bir efsanesin! Veri Mühendisliği senden korksun! 💜🚀',4200);
-  else toast('🐬 Rana seni çok seviyoruz! 💜',3000);
-}
+    /* ---------- uygulama durumu ---------- */
+    let db, current = 0, cm;
+    const progressKey = 'sqltrainer_progress';
+    const themeKey = 'sqltrainer_theme';
+    function loadProgress() { try { return JSON.parse(localStorage.getItem(progressKey)) || {}; } catch (e) { return {}; } }
+    function saveProgress(p) { localStorage.setItem(progressKey, JSON.stringify(p)); }
 
-/* ---------- init ---------- */
-async function init(){
-  const savedTheme = localStorage.getItem(themeKey) ||
-    (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+    /* ---------- GÖZLEM / ANALİTİK ---------- */
+    const trackKey = 'sqltrainer_events';
+    const timesKey = 'sqltracker_times';
+    const firstSeenKey = 'sqltrainer_firstseen';
+    function loadEvents() { try { return JSON.parse(localStorage.getItem(trackKey)) || []; } catch (e) { return []; } }
+    function loadTimes() { try { return JSON.parse(localStorage.getItem(timesKey)) || {}; } catch (e) { return {}; } }
+    function saveTimes(t) { localStorage.setItem(timesKey, JSON.stringify(t)); }
+    let times = {};
+    let activeLesson = null, lessonStartTs = null, focused = true;
+    function tickTime() {
+      if (activeLesson && lessonStartTs && focused) {
+        times[activeLesson] = (times[activeLesson] || 0) + (Date.now() - lessonStartTs);
+        saveTimes(times);
+      }
+      lessonStartTs = Date.now();
+    }
+    function logEv(type, data) {
+      const ev = loadEvents();
+      ev.push({ t: Date.now(), type, lesson: LESSONS[current] ? LESSONS[current].id : null, data: data || {} });
+      if (ev.length > 3000) ev.splice(0, ev.length - 3000);
+      localStorage.setItem(trackKey, JSON.stringify(ev));
+    }
 
-  const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
-  db = new SQL.Database();
-  db.run(SCHEMA_SQL);
+    /* ---------- SENKRON (Rana → bulut, Dayı buluttan okur) ---------- */
+    const syncStateKey = 'sqltrainer_sync_state';
+    let syncState = { lastSent: 0, count: 0, lastReason: '', cloudOk: null };
+    function loadSyncState() { try { syncState = Object.assign(syncState, JSON.parse(localStorage.getItem(syncStateKey)) || {}); } catch (e) { } }
+    function saveSyncState() { localStorage.setItem(syncStateKey, JSON.stringify(syncState)); }
+    /* Dayı modu: paneli açıp buluttan yükleyen cihaz, Rana'nın verisini üstüne yazmasın */
+    function isObserver() { return sessionStorage.getItem('observer') === '1'; }
+    function collectPayload(reason) {
+      const ev = loadEvents(); const prog = loadProgress();
+      const checks = ev.filter(e => e.type === 'check');
+      const passes = checks.filter(e => e.data.pass);
+      const done = LESSONS.filter(l => prog[l.id]).length;
+      return {
+        student: 'Rana', sentAt: new Date().toISOString(), sentReason: reason || 'periodic',
+        doneCount: done, total: LESSONS.length,
+        successRate: checks.length ? Math.round(passes.length / checks.length * 100) : 0,
+        totalRuns: ev.filter(e => e.type === 'query_run').length,
+        totalChecks: checks.length, totalPass: passes.length,
+        totalHints: ev.filter(e => e.type === 'hint_open').length,
+        totalSols: ev.filter(e => e.type === 'solution_show').length,
+        totalTime: Object.values(times).reduce((a, b) => a + b, 0),
+        lessons: LESSONS.map(l => ({ id: l.id, title: l.title })),
+        times: times, progress: prog,
+        events: ev.slice(-150).map(e => ({ t: new Date(e.t).toISOString(), type: e.type, lesson: e.lesson, data: e.data }))
+      };
+    }
+    function syncNow(reason) {
+      if (isObserver()) return false; /* dayı cihazından gönderme */
+      const payload = collectPayload(reason);
+      const mark = (ok) => { syncState.lastSent = Date.now(); syncState.count++; syncState.lastReason = reason || ''; syncState.cloudOk = ok; saveSyncState(); };
+      try {
+        fetch('api/track', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload), keepalive: true })
+          .then(r => mark(r && r.ok)).catch(() => mark(false));
+      } catch (e) { mark(false); }
+      return true;
+    }
+    function syncMaybe(reason) {
+      if (isObserver()) return;
+      if (Date.now() - syncState.lastSent < 45000) return;
+      syncNow(reason);
+    }
 
-  cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
-    mode: 'text/x-sql',
-    lineNumbers: true,
-    matchBrackets: true,
-    indentWithTabs: false,
-    lineWrapping: true,
-    extraKeys: { 'Ctrl-Enter': runQuery, 'Cmd-Enter': runQuery }
-  });
+    /* ---------- tema ---------- */
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.getElementById('theme-toggle').textContent = theme === 'dark' ? '🌙' : '☀️';
+      const link = document.getElementById('cm-theme-link');
+      if (cm) {
+        if (theme === 'dark') { link.disabled = false; cm.setOption('theme', 'dracula'); }
+        else { cm.setOption('theme', 'default'); }
+      }
+      localStorage.setItem(themeKey, theme);
+    }
+    function toggleTheme() {
+      const cur = document.documentElement.getAttribute('data-theme') || 'dark';
+      logEv('theme_toggle', { to: cur === 'dark' ? 'light' : 'dark' });
+      applyTheme(cur === 'dark' ? 'light' : 'dark');
+    }
 
-  /* editöre "RANA" yazılırsa küçük sürpriz */
-  let ranaTriggered=false;
-  cm.on('change',function(){
-    const v=cm.getValue().toUpperCase();
-    if(v.includes('RANA') && !ranaTriggered){ ranaTriggered=true; toast('🐬 Rana seni gördük! Bu gizli mesaj senin için 💜',3200); }
-    if(!v.includes('RANA')) ranaTriggered=false;
-  });
+    /* ---------- Rana mesajları & easter egg'ler ---------- */
+    const PRAISE = [
+      'Aferin Rana! 💜', 'Harikasın Rana! 🐬', 'İşte bu! Veri mühendisi ruh! 🚀',
+      'Mükemmel Rana! Dayın gurur duyuyor 😎', 'Çok güzel! Böyle devam! ✨',
+      'Bravo! Bu konuyu ezbere değil, anlamışsın. 💪'
+    ];
+    function randPraise() { return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
 
-  applyTheme(savedTheme);
-  buildSidebar();
-  buildSchemaBox();
-  loadLesson(0);
+    function confetti() {
+      const c = document.getElementById('confetti-canvas');
+      c.width = innerWidth; c.height = innerHeight;
+      const ctx = c.getContext('2d');
+      const colors = ['#5b8cff', '#8b6bff', '#3ecf8e', '#ff5c7c', '#c9a227', '#ffd1dc'];
+      const parts = [];
+      for (let i = 0; i < 150; i++) {
+        parts.push({
+          x: innerWidth / 2 + (Math.random() - .5) * 240, y: innerHeight * 0.35,
+          vx: (Math.random() - .5) * 9, vy: Math.random() * -11 - 4, g: 0.25 + Math.random() * 0.2,
+          s: 4 + Math.random() * 5, col: colors[(Math.random() * colors.length) | 0],
+          rot: Math.random() * 6.28, vr: (Math.random() - .5) * 0.35
+        });
+      }
+      function frame() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        let alive = false;
+        parts.forEach(p => {
+          p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= 0.99; p.rot += p.vr;
+          if (p.y < c.height + 40) {
+            alive = true;
+            ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+            ctx.fillStyle = p.col; ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 1.6); ctx.restore();
+          }
+        });
+        if (alive) requestAnimationFrame(frame); else ctx.clearRect(0, 0, c.width, c.height);
+      }
+      frame();
+    }
+    function toast(msg, ms) {
+      ms = ms || 2600;
+      const box = document.getElementById('toast-box');
+      const d = document.createElement('div'); d.className = 'toast'; d.innerHTML = msg;
+      box.appendChild(d);
+      requestAnimationFrame(() => d.classList.add('show'));
+      setTimeout(() => { d.classList.remove('show'); setTimeout(() => d.remove(), 300); }, ms);
+    }
 
-  times=loadTimes();
-  loadSyncState();
-  setInterval(tickTime,10000);
-  window.addEventListener('focus',()=>{ focused=true; tickTime(); syncMaybe('focus'); });
-  window.addEventListener('blur',()=>{ focused=false; tickTime(); syncMaybe('blur'); });
-  document.addEventListener('visibilitychange',()=>{ focused=!document.hidden; tickTime(); if(!document.hidden) syncMaybe('return'); });
-  window.addEventListener('beforeunload',()=>{ tickTime(); syncNow('close'); });
-  setInterval(()=>syncMaybe('periodic'),60000);
+    /* Konami kodu easter egg */
+    (function () {
+      const seq = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+      let pos = 0;
+      document.addEventListener('keydown', function (e) {
+        const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (k === seq[pos]) { pos++; if (pos === seq.length) { pos = 0; ranaEgg('konami'); } }
+        else pos = (k === seq[0] ? 1 : 0);
+      });
+    })();
+    function ranaEgg(kind) {
+      logEv('easter_egg', { kind });
+      confetti();
+      if (kind === 'konami') toast('🐬 Rana, sen bir efsanesin! Veri Mühendisliği senden korksun! 💜🚀', 4200);
+      else toast('🐬 Rana seni çok seviyoruz! 💜', 3000);
+    }
 
-  /* gözlem paneli erişimi: Ctrl+Shift+G veya #gozlem */
-  document.addEventListener('keydown',function(e){
-    if((e.ctrlKey||e.metaKey)&&e.shiftKey&&(e.key==='G'||e.key==='g')){ e.preventDefault(); openObs(); }
-  });
-  if(location.hash.indexOf('gozlem')>-1) openObs();
+    /* ---------- init ---------- */
+    async function init() {
+      const savedTheme = localStorage.getItem(themeKey) ||
+        (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
 
-  logEv('app_open',{});
-  if(!localStorage.getItem(firstSeenKey)){
-    localStorage.setItem(firstSeenKey,Date.now().toString());
-    toast('Hoş geldin Rana! 🐬 Veri Mühendisliği yolculuğunda seninleyiz. Başlayalım! 💜',4200);
-  }
-}
+      const SQL = await initSqlJs({ locateFile: f => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}` });
+      db = new SQL.Database();
+      db.run(SCHEMA_SQL);
 
-function buildSidebar(){
-  const list = document.getElementById('lesson-list');
-  const progress = loadProgress();
-  list.innerHTML = '';
-  const DIFF={beginner:'başlangıç',intermediate:'orta',advanced:'ileri'};
-  LESSONS.forEach((l,i)=>{
-    const div = document.createElement('div');
-    div.className = 'lesson-item' + (i===current?' active':'');
-    div.onclick = ()=>{ logEv('nav',{to:i,from:'sidebar'}); loadLesson(i); };
-    div.innerHTML = `<span class="check ${progress[l.id]?'done':''}">${progress[l.id]?'✓':''}</span><span class="num">${l.title}</span><span class="tag ${l.difficulty}">${DIFF[l.difficulty]}</span>`;
-    list.appendChild(div);
-  });
-  const done = LESSONS.filter(l=>progress[l.id]).length;
-  document.getElementById('progress-label').textContent = `${done} / ${LESSONS.length} tamamlandı`;
-  document.getElementById('progress-bar-fill').style.width = `${(done/LESSONS.length)*100}%`;
-  const allDone = done === LESSONS.length;
-  document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
-  document.getElementById('certificate-section').style.display = allDone ? 'block' : 'none';
-}
+      cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
+        mode: 'text/x-sql',
+        lineNumbers: true,
+        matchBrackets: true,
+        indentWithTabs: false,
+        lineWrapping: true,
+        extraKeys: { 'Ctrl-Enter': runQuery, 'Cmd-Enter': runQuery }
+      });
 
-/* ---------- sertifika ---------- */
-async function generateCertificate(){
-  const nameInput = document.getElementById('cert-name-input');
-  const name = nameInput.value.trim() || 'Rana';
-  if(document.fonts && document.fonts.ready){ await document.fonts.ready; }
-  drawCertificate(name);
-  document.getElementById('cert-canvas').style.display = 'block';
-  document.getElementById('cert-download-row').style.display = 'flex';
-  logEv('certificate',{name});
-}
+      /* editöre "RANA" yazılırsa küçük sürpriz */
+      let ranaTriggered = false;
+      cm.on('change', function () {
+        const v = cm.getValue().toUpperCase();
+        if (v.includes('RANA') && !ranaTriggered) { ranaTriggered = true; toast('🐬 Rana seni gördük! Bu gizli mesaj senin için 💜', 3200); }
+        if (!v.includes('RANA')) ranaTriggered = false;
+      });
 
-function drawCertificate(name){
-  const canvas = document.getElementById('cert-canvas');
-  const W = 1600, H = 1131;
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext('2d');
-  const isRana = name.trim().toLowerCase()==='rana';
+      applyTheme(savedTheme);
+      buildSidebar();
+      buildSchemaBox();
+      loadLesson(0);
 
-  ctx.fillStyle = '#fdfbf3';
-  ctx.fillRect(0, 0, W, H);
+      times = loadTimes();
+      loadSyncState();
+      setInterval(tickTime, 10000);
+      window.addEventListener('focus', () => { focused = true; tickTime(); syncMaybe('focus'); });
+      window.addEventListener('blur', () => { focused = false; tickTime(); syncMaybe('blur'); });
+      document.addEventListener('visibilitychange', () => { focused = !document.hidden; tickTime(); if (!document.hidden) syncMaybe('return'); });
+      window.addEventListener('beforeunload', () => { tickTime(); syncNow('close'); });
+      setInterval(() => syncMaybe('periodic'), 60000);
 
-  ctx.strokeStyle = '#1b2a4a';
-  ctx.lineWidth = 8;
-  ctx.strokeRect(30, 30, W - 60, H - 60);
-  ctx.strokeStyle = '#c9a227';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(50, 50, W - 100, H - 100);
+      /* gözlem paneli erişimi: Ctrl+Shift+G veya #gozlem */
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'G' || e.key === 'g')) { e.preventDefault(); openObs(); }
+      });
+      if (location.hash.indexOf('gozlem') > -1) openObs();
 
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#8b6b1f';
-  ctx.font = '600 26px Georgia, serif';
-  ctx.fillText('S Q L   T R A I N E R', W / 2, 150);
+      logEv('app_open', {});
+      if (!localStorage.getItem(firstSeenKey)) {
+        localStorage.setItem(firstSeenKey, Date.now().toString());
+        toast('Hoş geldin Rana! 🐬 Veri Mühendisliği yolculuğunda seninleyiz. Başlayalım! 💜', 4200);
+      }
+    }
 
-  ctx.fillStyle = '#1b2a4a';
-  ctx.font = '700 60px "Playfair Display", Georgia, serif';
-  ctx.fillText('Başarı Sertifikası', W / 2, 235);
+    function buildSidebar() {
+      const list = document.getElementById('lesson-list');
+      const progress = loadProgress();
+      list.innerHTML = '';
+      const DIFF = { beginner: 'başlangıç', intermediate: 'orta', advanced: 'ileri' };
+      LESSONS.forEach((l, i) => {
+        const div = document.createElement('div');
+        div.className = 'lesson-item' + (i === current ? ' active' : '');
+        div.onclick = () => { logEv('nav', { to: i, from: 'sidebar' }); loadLesson(i); };
+        div.innerHTML = `<span class="check ${progress[l.id] ? 'done' : ''}">${progress[l.id] ? '✓' : ''}</span><span class="num">${l.title}</span><span class="tag ${l.difficulty}">${DIFF[l.difficulty]}</span>`;
+        list.appendChild(div);
+      });
+      const done = LESSONS.filter(l => progress[l.id]).length;
+      document.getElementById('progress-label').textContent = `${done} / ${LESSONS.length} tamamlandı`;
+      document.getElementById('progress-bar-fill').style.width = `${(done / LESSONS.length) * 100}%`;
+      const allDone = done === LESSONS.length;
+      document.getElementById('completion-banner').style.display = allDone ? 'block' : 'none';
+      document.getElementById('certificate-section').style.display = allDone ? 'block' : 'none';
+    }
 
-  ctx.fillStyle = '#555';
-  ctx.font = '24px Georgia, serif';
-  ctx.fillText('Bu sertifika aşağıdaki kişiyi onaylar:', W / 2, 335);
+    /* ---------- sertifika ---------- */
+    async function generateCertificate() {
+      const nameInput = document.getElementById('cert-name-input');
+      const name = nameInput.value.trim() || 'Rana';
+      if (document.fonts && document.fonts.ready) { await document.fonts.ready; }
+      drawCertificate(name);
+      document.getElementById('cert-canvas').style.display = 'block';
+      document.getElementById('cert-download-row').style.display = 'flex';
+      logEv('certificate', { name });
+    }
 
-  ctx.fillStyle = '#1b2a4a';
-  ctx.font = 'italic 700 68px "Playfair Display", Georgia, serif';
-  ctx.fillText(name, W / 2, 430);
+    function drawCertificate(name) {
+      const canvas = document.getElementById('cert-canvas');
+      const W = 1600, H = 1131;
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+      const isRana = name.trim().toLowerCase() === 'rana';
 
-  const nameWidth = ctx.measureText(name).width;
-  ctx.strokeStyle = '#c9a227';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - nameWidth / 2 - 20, 455);
-  ctx.lineTo(W / 2 + nameWidth / 2 + 20, 455);
-  ctx.stroke();
+      ctx.fillStyle = '#fdfbf3';
+      ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = '#555';
-  ctx.font = '22px Georgia, serif';
-  ctx.fillText('SQL Trainer etkileşimli kursunun 17 dersinin tamamını başarıyla bitirmiş,', W / 2, 530);
-  ctx.fillText('SELECT ifadelerinden pencere fonksiyonlarına kadar SQL konusunda yeterlilik göstermiştir.', W / 2, 565);
+      ctx.strokeStyle = '#1b2a4a';
+      ctx.lineWidth = 8;
+      ctx.strokeRect(30, 30, W - 60, H - 60);
+      ctx.strokeStyle = '#c9a227';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(50, 50, W - 100, H - 100);
 
-  if(isRana){
-    ctx.fillStyle = '#8b6bff';
-    ctx.font = 'italic 22px Georgia, serif';
-    ctx.fillText('🐬 Veri Mühendisi Rana — dayınla gurur duyuyor! 💜', W / 2, 612);
-  }
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#8b6b1f';
+      ctx.font = '600 26px Georgia, serif';
+      ctx.fillText('S Q L   T R A I N E R', W / 2, 150);
 
-  ctx.beginPath();
-  ctx.arc(W - 220, H - 220, 80, 0, Math.PI * 2);
-  ctx.fillStyle = '#c9a227';
-  ctx.fill();
-  ctx.fillStyle = '#fdfbf3';
-  ctx.font = '700 22px Georgia, serif';
-  ctx.fillText('SQL', W - 220, H - 226);
-  ctx.font = '700 26px Georgia, serif';
-  ctx.fillText('✓', W - 220, H - 192);
+      ctx.fillStyle = '#1b2a4a';
+      ctx.font = '700 60px "Playfair Display", Georgia, serif';
+      ctx.fillText('Başarı Sertifikası', W / 2, 235);
 
-  const dateStr = new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
-  ctx.textAlign = 'left';
-  ctx.strokeStyle = '#1b2a4a';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(150, H - 210);
-  ctx.lineTo(420, H - 210);
-  ctx.stroke();
-  ctx.fillStyle = '#1b2a4a';
-  ctx.font = '20px Georgia, serif';
-  ctx.fillText(dateStr, 150, H - 185);
-  ctx.fillStyle = '#888';
-  ctx.font = '14px Georgia, serif';
-  ctx.fillText('Tamamlanma Tarihi', 150, H - 165);
+      ctx.fillStyle = '#555';
+      ctx.font = '24px Georgia, serif';
+      ctx.fillText('Bu sertifika aşağıdaki kişiyi onaylar:', W / 2, 335);
 
-  const certId = 'SQLT-' + Math.random().toString(36).slice(2, 8).toUpperCase();
-  ctx.textAlign = 'center';
-  ctx.font = '14px monospace';
-  ctx.fillStyle = '#999';
-  ctx.fillText('Sertifika No: ' + certId, W / 2, H - 70);
-}
+      ctx.fillStyle = '#1b2a4a';
+      ctx.font = 'italic 700 68px "Playfair Display", Georgia, serif';
+      ctx.fillText(name, W / 2, 430);
 
-function downloadCertPNG(){
-  const canvas = document.getElementById('cert-canvas');
-  const link = document.createElement('a');
-  link.download = 'sql-trainer-sertifika.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-}
-function downloadCertPDF(){
-  const canvas = document.getElementById('cert-canvas');
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
-  pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
-  pdf.save('sql-trainer-sertifika.pdf');
-}
+      const nameWidth = ctx.measureText(name).width;
+      ctx.strokeStyle = '#c9a227';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(W / 2 - nameWidth / 2 - 20, 455);
+      ctx.lineTo(W / 2 + nameWidth / 2 + 20, 455);
+      ctx.stroke();
 
-function buildSchemaBox(){
-  const box = document.getElementById('schema-box');
-  box.innerHTML = `
+      ctx.fillStyle = '#555';
+      ctx.font = '22px Georgia, serif';
+      ctx.fillText('SQL Trainer etkileşimli kursunun 17 dersinin tamamını başarıyla bitirmiş,', W / 2, 530);
+      ctx.fillText('SELECT ifadelerinden pencere fonksiyonlarına kadar SQL konusunda yeterlilik göstermiştir.', W / 2, 565);
+
+      if (isRana) {
+        ctx.fillStyle = '#8b6bff';
+        ctx.font = 'italic 22px Georgia, serif';
+        ctx.fillText('🐬 Veri Mühendisi Rana — dayınla gurur duyuyor! 💜', W / 2, 612);
+      }
+
+      ctx.beginPath();
+      ctx.arc(W - 220, H - 220, 80, 0, Math.PI * 2);
+      ctx.fillStyle = '#c9a227';
+      ctx.fill();
+      ctx.fillStyle = '#fdfbf3';
+      ctx.font = '700 22px Georgia, serif';
+      ctx.fillText('SQL', W - 220, H - 226);
+      ctx.font = '700 26px Georgia, serif';
+      ctx.fillText('✓', W - 220, H - 192);
+
+      const dateStr = new Date().toLocaleDateString('tr-TR', { year: 'numeric', month: 'long', day: 'numeric' });
+      ctx.textAlign = 'left';
+      ctx.strokeStyle = '#1b2a4a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(150, H - 210);
+      ctx.lineTo(420, H - 210);
+      ctx.stroke();
+      ctx.fillStyle = '#1b2a4a';
+      ctx.font = '20px Georgia, serif';
+      ctx.fillText(dateStr, 150, H - 185);
+      ctx.fillStyle = '#888';
+      ctx.font = '14px Georgia, serif';
+      ctx.fillText('Tamamlanma Tarihi', 150, H - 165);
+
+      const certId = 'SQLT-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+      ctx.textAlign = 'center';
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#999';
+      ctx.fillText('Sertifika No: ' + certId, W / 2, H - 70);
+    }
+
+    function downloadCertPNG() {
+      const canvas = document.getElementById('cert-canvas');
+      const link = document.createElement('a');
+      link.download = 'sql-trainer-sertifika.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+    function downloadCertPDF() {
+      const canvas = document.getElementById('cert-canvas');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save('sql-trainer-sertifika.pdf');
+    }
+
+    function buildSchemaBox() {
+      const box = document.getElementById('schema-box');
+      box.innerHTML = `
     <table><tr><th>Tablo</th><th>Sütunlar</th></tr>
     <tr><td>customers</td><td>customer_id, name, country, signup_date</td></tr>
     <tr><td>products</td><td>product_id, name, category, price, discount</td></tr>
     <tr><td>orders</td><td>order_id, customer_id, order_date, status</td></tr>
     <tr><td>order_items</td><td>order_item_id, order_id, product_id, quantity</td></tr>
-    <tr><td>employees</td><td>employee_id, name, title, manager_id</td></tr>
+    <tr><td>flights</td><td>flight_id, departure, arrival</td></tr>
     </table>`;
-}
-function toggleSchema(){
-  const box = document.getElementById('schema-box');
-  const toggle = document.querySelector('.schema-toggle');
-  const show = box.style.display !== 'block';
-  box.style.display = show ? 'block' : 'none';
-  toggle.textContent = (show?'▾':'▸') + ' örnek veritabanı şemasını göster';
-  logEv('schema_toggle',{show});
-}
-
-function loadLesson(i){
-  if(i<0||i>=LESSONS.length) return;
-  tickTime();
-  current = i;
-  activeLesson = LESSONS[i].id;
-  lessonStartTs = Date.now();
-  const l = LESSONS[i];
-  document.getElementById('lesson-title').textContent = l.title;
-  document.getElementById('concept-box').innerHTML = l.concept;
-  document.getElementById('rana-note-box').innerHTML = l.ranaNote || '';
-  document.getElementById('task-box').innerHTML = l.task;
-  cm.setValue('');
-  document.getElementById('hint').style.display = 'none';
-  document.getElementById('hint').textContent = l.hint;
-  document.getElementById('verdict').className = '';
-  document.getElementById('verdict').textContent = '';
-  document.getElementById('err').textContent = '';
-  document.getElementById('row-count').textContent = '';
-  document.getElementById('result-table').innerHTML = '';
-  buildSidebar();
-  setTimeout(()=>cm.refresh(), 30);
-  logEv('lesson_open',{index:i});
-}
-function prevLesson(){ if(current>0){ logEv('nav',{to:current-1,from:'prev'}); loadLesson(current-1); } }
-function nextLesson(){ if(current<LESSONS.length-1){ logEv('nav',{to:current+1,from:'next'}); loadLesson(current+1); } }
-function toggleHint(){
-  const h = document.getElementById('hint');
-  const showing = h.style.display==='block';
-  h.style.display = showing ? 'none' : 'block';
-  if(!showing){ logEv('hint_open',{}); toast('İpucu açıldı — önce kendin denemeye çalış Rana! 💡'); }
-}
-function showSolution(){
-  cm.setValue(LESSONS[current].solution);
-  logEv('solution_show',{});
-  toast('Çözüm gösterildi. Anlamaya çalış, ezberleme! 💜');
-}
-function resetProgress(){
-  if(!confirm('Tüm ders ilerlemesi sıfırlansın mı? Bu geri alınamaz.')) return;
-  localStorage.removeItem(progressKey);
-  buildSidebar();
-  logEv('reset',{});
-}
-
-function execSql(sql){
-  const res = db.exec(sql);
-  return res.length ? res[0] : { columns:[], values:[] };
-}
-
-function renderTable(result){
-  const rc = document.getElementById('row-count');
-  if(!result.columns.length){
-    document.getElementById('result-table').innerHTML = '<p style="color:var(--muted)">(satır dönmedi)</p>';
-    rc.textContent = '';
-    return;
-  }
-  rc.textContent = `${result.values.length} satır döndü`;
-  let html = '<table><tr>' + result.columns.map(c=>`<th>${c}</th>`).join('') + '</tr>';
-  result.values.forEach(row=>{
-    html += '<tr>' + row.map(v=>`<td>${v===null?'<i>NULL</i>':v}</td>`).join('') + '</tr>';
-  });
-  html += '</table>';
-  document.getElementById('result-table').innerHTML = html;
-}
-
-function runQuery(){
-  document.getElementById('err').textContent = '';
-  document.getElementById('verdict').className = '';
-  document.getElementById('verdict').textContent = '';
-  const sql = cm.getValue().trim();
-  if(!sql) return;
-  try{
-    const result = execSql(sql);
-    renderTable(result);
-    logEv('query_run',{sql:sql.slice(0,400),ok:true,rows:result.values.length});
-  }catch(e){
-    document.getElementById('err').textContent = 'SQL hatası: ' + e.message;
-    document.getElementById('result-table').innerHTML = '';
-    document.getElementById('row-count').textContent = '';
-    logEv('query_run',{sql:sql.slice(0,400),ok:false,error:e.message.slice(0,200)});
-  }
-}
-
-function normalize(result, ignoreOrder){
-  const rows = result.values.map(r => JSON.stringify(r));
-  return ignoreOrder ? rows.slice().sort() : rows;
-}
-
-function checkAnswer(){
-  const sql = cm.getValue().trim();
-  const verdict = document.getElementById('verdict');
-  document.getElementById('err').textContent = '';
-  if(!sql){ verdict.className='fail'; verdict.textContent='Önce bir sorgu yaz.'; return; }
-  const lesson = LESSONS[current];
-  let userResult, solResult;
-  try{
-    userResult = execSql(sql);
-  }catch(e){
-    verdict.className = 'fail';
-    verdict.textContent = '✗ SQL hatası: ' + e.message;
-    logEv('check',{sql:sql.slice(0,400),pass:false,reason:'SQL hatası: '+e.message.slice(0,160)});
-    return;
-  }
-  solResult = execSql(lesson.solution);
-  renderTable(userResult);
-
-  const colsMatch = JSON.stringify(userResult.columns.map(c=>c.toLowerCase()))
-                  === JSON.stringify(solResult.columns.map(c=>c.toLowerCase()));
-  const userRows = normalize(userResult, lesson.ignoreOrder);
-  const solRows = normalize(solResult, lesson.ignoreOrder);
-  const rowsMatch = JSON.stringify(userRows) === JSON.stringify(solRows);
-
-  let reason='';
-  if(!colsMatch) reason='Sütun adları/alias sayısı beklenenle uyuşmuyor.';
-  else if(!rowsMatch) reason = lesson.ignoreOrder
-      ? 'Satır değerleri beklenen sonuçla uyuşmuyor.'
-      : 'Satır değerleri veya sırası beklenenle uyuşmuyor (bu derste sıra önemli).';
-
-  if(colsMatch && rowsMatch){
-    verdict.className = 'pass';
-    verdict.textContent = '✓ Doğru! ' + randPraise();
-    const progress = loadProgress();
-    const firstTime = !progress[lesson.id];
-    progress[lesson.id] = true;
-    saveProgress(progress);
-    buildSidebar();
-    confetti();
-    toast(firstTime?('Ders tamam! '+randPraise()):randPraise());
-    logEv('check',{sql:sql.slice(0,400),pass:true,firstTime});
-    if(firstTime) logEv('lesson_passed',{lesson:lesson.id});
-    syncMaybe(firstTime?'lesson_passed':'check_pass');
-    const done = LESSONS.filter(l=>progress[l.id]).length;
-    if(done===LESSONS.length){
-      setTimeout(()=>{ confetti(); toast('🐬 Tüm dersler bitti Rana! SEN DAHİSİN! Sertifikayı almayı unutma 🎓💜',5000); },500);
-      logEv('all_complete',{});
-      syncNow('all_complete');
     }
-  } else {
-    verdict.className = 'fail';
-    verdict.textContent = '✗ Tam olmadı — ' + reason;
-    logEv('check',{sql:sql.slice(0,400),pass:false,reason});
-  }
-}
+    function toggleSchema() {
+      const box = document.getElementById('schema-box');
+      const toggle = document.querySelector('.schema-toggle');
+      const show = box.style.display !== 'block';
+      box.style.display = show ? 'block' : 'none';
+      toggle.textContent = (show ? '▾' : '▸') + ' örnek veritabanı şemasını göster';
+      logEv('schema_toggle', { show });
+    }
 
-/* ---------- GÖZLEM PANELİ ---------- */
-function fmtDur(ms){
-  if(!ms) return '0sn';
-  const s=Math.round(ms/1000);
-  if(s<60) return s+'sn';
-  const m=Math.floor(s/60), ss=s%60;
-  if(m<60) return m+'dk '+ss+'sn';
-  const h=Math.floor(m/60);
-  return h+'sa '+(m%60)+'dk';
-}
-function fmtTime(t){
-  const d=new Date(t);
-  return d.toLocaleString('tr-TR',{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'});
-}
-function openObs(){
-  const ov=document.getElementById('obs-overlay');
-  ov.style.display='flex';
-  buildObs();
-  logEv('obs_open',{});
-}
-function closeObs(){ document.getElementById('obs-overlay').style.display='none'; }
+    function loadLesson(i) {
+      if (i < 0 || i >= LESSONS.length) return;
+      tickTime();
+      current = i;
+      activeLesson = LESSONS[i].id;
+      lessonStartTs = Date.now();
+      const l = LESSONS[i];
+      document.getElementById('lesson-title').textContent = l.title;
+      document.getElementById('concept-box').innerHTML = l.concept;
+      document.getElementById('rana-note-box').innerHTML = l.ranaNote || '';
+      document.getElementById('task-box').innerHTML = l.task;
+      cm.setValue('');
+      document.getElementById('hint').style.display = 'none';
+      document.getElementById('hint').textContent = l.hint;
+      document.getElementById('verdict').className = '';
+      document.getElementById('verdict').textContent = '';
+      document.getElementById('err').textContent = '';
+      document.getElementById('row-count').textContent = '';
+      document.getElementById('result-table').innerHTML = '';
+      buildSidebar();
+      setTimeout(() => cm.refresh(), 30);
+      logEv('lesson_open', { index: i });
+    }
+    function prevLesson() { if (current > 0) { logEv('nav', { to: current - 1, from: 'prev' }); loadLesson(current - 1); } }
+    function nextLesson() { if (current < LESSONS.length - 1) { logEv('nav', { to: current + 1, from: 'next' }); loadLesson(current + 1); } }
+    function toggleHint() {
+      const h = document.getElementById('hint');
+      const showing = h.style.display === 'block';
+      h.style.display = showing ? 'none' : 'block';
+      if (!showing) { logEv('hint_open', {}); toast('İpucu açıldı — önce kendin denemeye çalış Rana! 💡'); }
+    }
+    function showSolution() {
+      cm.setValue(LESSONS[current].solution);
+      logEv('solution_show', {});
+      toast('Çözüm gösterildi. Anlamaya çalış, ezberleme! 💜');
+    }
+    function resetProgress() {
+      if (!confirm('Tüm ders ilerlemesi sıfırlansın mı? Bu geri alınamaz.')) return;
+      localStorage.removeItem(progressKey);
+      buildSidebar();
+      logEv('reset', {});
+    }
 
-function buildObs(){
-  const ev=loadEvents();
-  const prog=loadProgress();
-  const byLesson={};
-  LESSONS.forEach(l=>byLesson[l.id]={views:0,runs:0,checks:0,passes:0,fails:0,hints:0,solShows:0,errors:[]});
-  ev.forEach(e=>{
-    const b=byLesson[e.lesson]; if(!b) return;
-    if(e.type==='lesson_open') b.views++;
-    else if(e.type==='query_run'){ b.runs++; }
-    else if(e.type==='check'){ b.checks++; if(e.data.pass) b.passes++; else b.fails++; if(!e.data.pass) b.errors.push({sql:e.data.sql,reason:e.data.reason,t:e.t}); }
-    else if(e.type==='hint_open') b.hints++;
-    else if(e.type==='solution_show') b.solShows++;
-  });
+    function execSql(sql) {
+      const res = db.exec(sql);
+      return res.length ? res[0] : { columns: [], values: [] };
+    }
 
-  const totalChecks=ev.filter(e=>e.type==='check').length;
-  const totalPass=ev.filter(e=>e.type==='check'&&e.data.pass).length;
-  const totalRuns=ev.filter(e=>e.type==='query_run').length;
-  const totalHints=ev.filter(e=>e.type==='hint_open').length;
-  const totalSols=ev.filter(e=>e.type==='solution_show').length;
-  const totalViews=ev.filter(e=>e.type==='lesson_open').length;
-  const totalTime=Object.values(times).reduce((a,b)=>a+b,0);
-  const done=LESSONS.filter(l=>prog[l.id]).length;
-  const successRate=totalChecks?Math.round(totalPass/totalChecks*100):0;
-
-  let html='';
-  html+='<div class="obs-cards">';
-  html+=card(done+'/'+LESSONS.length,'Ders tamamlandı');
-  html+=card(fmtDur(totalTime),'Toplam aktif süre');
-  html+=card(totalViews,'Ders görüntülenme');
-  html+=card(totalRuns,'Sorgu çalıştırma');
-  html+=card(totalChecks,'Cevap kontrolü');
-  html+=card('%'+successRate,'Başarı oranı');
-  html+=card(totalHints,'İpucu kullanımı');
-  html+=card(totalSols,'Çözüm gösterme');
-  html+='</div>';
-
-  html+='<div class="obs-sec">Ders bazında detay</div>';
-  html+='<table><tr><th>Ders</th><th>Görüntüleme</th><th>Süre</th><th>Çalıştırma</th><th>Kontrol</th><th>Doğru</th><th>Yanlış</th><th>İpucu</th><th>Çözüm</th><th>Durum</th></tr>';
-  LESSONS.forEach(l=>{
-    const b=byLesson[l.id];
-    html+='<tr>'
-      +'<td>'+l.title+'</td>'
-      +'<td>'+b.views+'</td>'
-      +'<td>'+fmtDur(times[l.id]||0)+'</td>'
-      +'<td>'+b.runs+'</td>'
-      +'<td>'+b.checks+'</td>'
-      +'<td style="color:var(--good)">'+b.passes+'</td>'
-      +'<td style="color:var(--bad)">'+b.fails+'</td>'
-      +'<td>'+(b.hints?'<b>'+b.hints+'</b>':'-')+'</td>'
-      +'<td>'+(b.solShows?'<b style="color:var(--bad)">'+b.solShows+'</b>':'-')+'</td>'
-      +'<td>'+(prog[l.id]?'✓':'·')+'</td>'
-      +'</tr>';
-  });
-  html+='</table>';
-
-  html+='<div class="obs-sec">Yanlış denemeler (neyi yanlış yaptı?)</div>';
-  let anyErr=false;
-  LESSONS.forEach(l=>{
-    const b=byLesson[l.id];
-    if(b.errors.length){
-      anyErr=true;
-      html+='<div style="margin:8px 0 4px;font-weight:600;color:var(--accent2)">'+l.title+' — '+b.errors.length+' yanlış deneme</div>';
-      b.errors.slice(-5).forEach(er=>{
-        html+='<div class="obs-err"><b>'+fmtTime(er.t)+'</b><code>'+escapeHtml(er.sql)+'</code><div class="why">▸ '+escapeHtml(er.reason)+'</div></div>';
+    function renderTable(result) {
+      const rc = document.getElementById('row-count');
+      if (!result.columns.length) {
+        document.getElementById('result-table').innerHTML = '<p style="color:var(--muted)">(satır dönmedi)</p>';
+        rc.textContent = '';
+        return;
+      }
+      rc.textContent = `${result.values.length} satır döndü`;
+      let html = '<table><tr>' + result.columns.map(c => `<th>${c}</th>`).join('') + '</tr>';
+      result.values.forEach(row => {
+        html += '<tr>' + row.map(v => `<td>${v === null ? '<i>NULL</i>' : v}</td>`).join('') + '</tr>';
       });
+      html += '</table>';
+      document.getElementById('result-table').innerHTML = html;
     }
-  });
-  if(!anyErr) html+='<div style="color:var(--muted);font-size:13px">Henüz yanlış deneme yok. 🎉</div>';
 
-  html+='<div class="obs-sec">Son etkinlik (sayfa hareketleri)</div>';
-  const recent=ev.slice(-80).reverse();
-  const labels={app_open:'uygulama açıldı',lesson_open:'derse girdi',query_open:'derse girdi',query_run:'sorgu çalıştırdı',check:'cevap kontrolü',hint_open:'ipucu açtı',solution_show:'çözümü gördü',nav:'gezinme',theme_toggle:'tema değişti',schema_toggle:'şemayı açtı/kapadı',certificate:'sertifika oluşturdu',obs_open:'gözlem panelini açtı',easter_egg:'easter egg!',lesson_passed:'dersi geçti',all_complete:'tümünü bitirdi',reset:'ilerlemeyi sıfırladı'};
-  let tl='';
-  recent.forEach(e=>{
-    const lab=labels[e.type]||e.type;
-    let extra='';
-    if(e.type==='nav') extra=' → '+(e.data.to+1)+'. ders ('+(e.data.from||'?')+')';
-    else if(e.type==='query_run') extra=e.data.ok?(' ✓ '+e.data.rows+' satır'):(' ✗ hata');
-    else if(e.type==='check') extra=e.data.pass?' ✓ DOĞRU':' ✗ yanlış';
-    else if(e.type==='lesson_open') extra=' → '+(e.data.index+1)+'. ders';
-    tl+='<div style="color:var(--muted)">['+fmtTime(e.t)+']</div> <div>'+lab+extra+'</div>';
-  });
-  html+='<div id="obs-timeline">'+(tl||'henüz etkinlik yok')+'</div>';
+    function runQuery() {
+      document.getElementById('err').textContent = '';
+      document.getElementById('verdict').className = '';
+      document.getElementById('verdict').textContent = '';
+      const sql = cm.getValue().trim();
+      if (!sql) return;
+      try {
+        const result = execSql(sql);
+        renderTable(result);
+        logEv('query_run', { sql: sql.slice(0, 400), ok: true, rows: result.values.length });
+      } catch (e) {
+        document.getElementById('err').textContent = 'SQL hatası: ' + e.message;
+        document.getElementById('result-table').innerHTML = '';
+        document.getElementById('row-count').textContent = '';
+        logEv('query_run', { sql: sql.slice(0, 400), ok: false, error: e.message.slice(0, 200) });
+      }
+    }
 
-  html+='<div class="obs-sec">☁️ Bulut (Rana\'nın uzaktan verisi)</div>';
-  const lastSentTxt=syncState.lastSent?fmtTime(syncState.lastSent):'hiç';
-  const cloudTxt=syncState.cloudOk===null?'bilinmiyor':(syncState.cloudOk?'<b style="color:var(--good)">gönderildi ✓</b>':'<b style="color:var(--bad)">ulaşılamadı</b>');
-  html+='<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6">';
-  html+='<div style="margin-bottom:6px">Site Vercel\'da yayındaysa Rana\'nın verileri otomatik buluta gider; sen de aşağıdan <b>Rana\'nın cihazından</b> gelen son durumu yükleyip görürsün. (Bu cihazdan gönderim kapalıdır — veriyi üstüne yazmazsın.)</div>';
-  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">';
-  html+='<button class="secondary" onclick="loadCloudObs()">🔄 Buluttan yükle (Rana\'nın verisi)</button>';
-  html+='</div>';
-  html+='<div style="color:var(--muted);font-size:12px">Bu cihazın bulut gönderimi: '+cloudTxt+' · Son deneme: '+lastSentTxt+'</div>';
-  html+='<div id="cloud-view" style="margin-top:10px"></div>';
-  html+='</div>';
+    function normalize(result, ignoreOrder) {
+      const rows = result.values.map(r => JSON.stringify(r));
+      return ignoreOrder ? rows.slice().sort() : rows;
+    }
 
-  html+='<div class="obs-actions">';
-  html+='<button class="secondary" onclick="exportObs()">⬇ Verileri indir (JSON)</button>';
-  html+='<button class="secondary" onclick="copyObs()">📋 Özeti kopyala</button>';
-  html+='<button class="secondary" onclick="clearObs()" style="color:var(--bad)">Verileri sıfırla</button>';
-  html+='</div>';
+    function checkAnswer() {
+      const sql = cm.getValue().trim();
+      const verdict = document.getElementById('verdict');
+      document.getElementById('err').textContent = '';
+      if (!sql) { verdict.className = 'fail'; verdict.textContent = 'Önce bir sorgu yaz.'; return; }
+      const lesson = LESSONS[current];
+      let userResult, solResult;
+      try {
+        userResult = execSql(sql);
+      } catch (e) {
+        verdict.className = 'fail';
+        verdict.textContent = '✗ SQL hatası: ' + e.message;
+        logEv('check', { sql: sql.slice(0, 400), pass: false, reason: 'SQL hatası: ' + e.message.slice(0, 160) });
+        return;
+      }
+      solResult = execSql(lesson.solution);
+      renderTable(userResult);
 
-  document.getElementById('obs-body').innerHTML=html;
-}
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-function card(v,l){ return '<div class="obs-card"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>'; }
-function exportObs(){
-  const data={exportedAt:new Date().toISOString(),progress:loadProgress(),times,events:loadEvents()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob); a.download='rana-sql-gozlem.json'; a.click();
-  logEv('obs_export',{});
-}
-function copyObs(){
-  const ev=loadEvents(); const prog=loadProgress();
-  const done=LESSONS.filter(l=>prog[l.id]).length;
-  const checks=ev.filter(e=>e.type==='check'); const passes=checks.filter(e=>e.data.pass);
-  const summary='Rana SQL Gözlem Özeti\n'
-    +'Ders tamamlandı: '+done+'/'+LESSONS.length+'\n'
-    +'Toplam süre: '+fmtDur(Object.values(times).reduce((a,b)=>a+b,0))+'\n'
-    +'Cevap kontrolü: '+checks.length+' | Doğru: '+passes.length+'\n'
-    +'İpucu kullanımı: '+ev.filter(e=>e.type==='hint_open').length+'\n'
-    +'Çözüm gösterme: '+ev.filter(e=>e.type==='solution_show').length+'\n'
-    +'Oluşturulma: '+new Date().toLocaleString('tr-TR');
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(summary).then(()=>toast('Özet panoya kopyalandı 📋'));
-  } else { toast('Panoya kopyalanamadı, JSON indir kullan.'); }
-}
-function clearObs(){
-  if(!confirm('Tüm gözlem verileri silinsin mi? Bu geri alınamaz.')) return;
-  localStorage.removeItem(trackKey); localStorage.removeItem(timesKey);
-  times={}; buildObs(); toast('Gözlem verileri sıfırlandı.');
-}
-/* Dayı: Rana'nın buluttaki verisini çek ve panelde göster */
-function loadCloudObs(){
-  sessionStorage.setItem('observer','1'); /* bu cihazdan artık buluta yazma */
-  const el=document.getElementById('cloud-view');
-  if(el) el.innerHTML='<div style="color:var(--muted);font-size:13px">Yükleniyor…</div>';
-  fetch('api/obs').then(r=>r.json()).then(j=>{
-    const el2=document.getElementById('cloud-view');
-    if(!el2) return;
-    if(!j.ok){ el2.innerHTML='<div style="color:var(--bad);font-size:13px">Veri yok veya site Vercel\'da değil / KV bağlanmamış. ('+escapeHtml(j.reason||j.error||'')+')</div>'; return; }
-    const d=j.snapshot||{};
-    el2.innerHTML=renderCloudSnapshot(d,j.updates);
-  }).catch(()=>{ const e=document.getElementById('cloud-view'); if(e) e.innerHTML='<div style="color:var(--bad);font-size:13px">Buluta ulaşılamadı (site Vercel\'da değil).</div>'; });
-}
-function renderCloudSnapshot(d,updates){
-  const ev=d.events||[]; const prog=d.progress||{};
-  const errs=ev.filter(e=>e.type==='check'&&e.data&&!e.data.pass).slice(-8);
-  const moves=ev.slice(-15).reverse();
-  const labels={app_open:'uygulama açıldı',lesson_open:'derse girdi',query_run:'sorgu çalıştırdı',check:'cevap kontrolü',hint_open:'ipucu açtı',solution_show:'çözümü gördü',nav:'gezinme',theme_toggle:'tema değişti',certificate:'sertifika',easter_egg:'easter egg!',lesson_passed:'dersi geçti',all_complete:'tümünü bitirdi'};
-  let h='<div style="border:1px solid var(--good);border-radius:8px;padding:10px;margin-top:6px;background:rgba(62,207,142,.06)">';
-  h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Son güncelleme: '+escapeHtml(d.sentAt||'?')+' · toplam '+updates+' gönderim</div>';
-  h+='<div class="obs-cards" style="margin-bottom:10px">';
-  h+=card((d.doneCount||0)+'/'+(d.total||0),'Ders (Rana)');
-  h+=card('%'+(d.successRate||0),'Başarı oranı');
-  h+=card(fmtDur(d.totalTime||0),'Toplam süre');
-  h+=card(d.totalChecks||0,'Kontrol');
-  h+=card(d.totalPass||0,'Doğru');
-  h+=card(d.totalHints||0,'İpucu');
-  h+=card(d.totalSols||0,'Çözüm gösterme');
-  h+='</div>';
-  if(errs.length){
-    h+='<div style="font-weight:700;color:var(--bad);margin:8px 0 4px;font-size:13px">Rana\'nın yanlış denemeleri</div>';
-    errs.forEach(e=>{ h+='<div class="obs-err"><code>'+escapeHtml(e.data.sql||'')+'</code><div class="why">▸ '+escapeHtml(e.data.reason||'')+'</div></div>'; });
-  }
-  h+='<div style="font-weight:700;margin:10px 0 4px;font-size:13px">Son hareketler</div>';
-  h+='<div id="obs-timeline" style="max-height:160px">';
-  moves.forEach(e=>{ const lab=labels[e.type]||e.type; let x=''; if(e.type==='nav'&&e.data) x=' → '+(e.data.to+1)+'. ders'; else if(e.type==='check'&&e.data) x=e.data.pass?' ✓':' ✗'; else if(e.type==='query_run'&&e.data) x=e.data.ok?' ✓':' ✗'; h+='<div style="color:var(--muted)">['+escapeHtml((e.t||'').slice(0,16))+']</div> <div>'+lab+x+'</div>'; });
-  h+='</div>';
-  h+='</div>';
-  return h;
-}
+      const colsMatch = JSON.stringify(userResult.columns.map(c => c.toLowerCase()))
+        === JSON.stringify(solResult.columns.map(c => c.toLowerCase()));
+      const userRows = normalize(userResult, lesson.ignoreOrder);
+      const solRows = normalize(solResult, lesson.ignoreOrder);
+      const rowsMatch = JSON.stringify(userRows) === JSON.stringify(solRows);
 
-init();
-</script>
+      let reason = '';
+      if (!colsMatch) reason = 'Sütun adları/alias sayısı beklenenle uyuşmuyor.';
+      else if (!rowsMatch) reason = lesson.ignoreOrder
+        ? 'Satır değerleri beklenen sonuçla uyuşmuyor.'
+        : 'Satır değerleri veya sırası beklenenle uyuşmuyor (bu derste sıra önemli).';
+
+      if (colsMatch && rowsMatch) {
+        verdict.className = 'pass';
+        verdict.textContent = '✓ Doğru! ' + randPraise();
+        const progress = loadProgress();
+        const firstTime = !progress[lesson.id];
+        progress[lesson.id] = true;
+        saveProgress(progress);
+        buildSidebar();
+        confetti();
+        toast(firstTime ? ('Ders tamam! ' + randPraise()) : randPraise());
+        logEv('check', { sql: sql.slice(0, 400), pass: true, firstTime });
+        if (firstTime) logEv('lesson_passed', { lesson: lesson.id });
+        syncMaybe(firstTime ? 'lesson_passed' : 'check_pass');
+        const done = LESSONS.filter(l => progress[l.id]).length;
+        if (done === LESSONS.length) {
+          setTimeout(() => { confetti(); toast('🐬 Tüm dersler bitti Rana! SEN DAHİSİN! Sertifikayı almayı unutma 🎓💜', 5000); }, 500);
+          logEv('all_complete', {});
+          syncNow('all_complete');
+        }
+      } else {
+        verdict.className = 'fail';
+        verdict.textContent = '✗ Tam olmadı — ' + reason;
+        logEv('check', { sql: sql.slice(0, 400), pass: false, reason });
+      }
+    }
+
+    /* ---------- GÖZLEM PANELİ ---------- */
+    function fmtDur(ms) {
+      if (!ms) return '0sn';
+      const s = Math.round(ms / 1000);
+      if (s < 60) return s + 'sn';
+      const m = Math.floor(s / 60), ss = s % 60;
+      if (m < 60) return m + 'dk ' + ss + 'sn';
+      const h = Math.floor(m / 60);
+      return h + 'sa ' + (m % 60) + 'dk';
+    }
+    function fmtTime(t) {
+      const d = new Date(t);
+      return d.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+    }
+    function openObs() {
+      const ov = document.getElementById('obs-overlay');
+      ov.style.display = 'flex';
+      buildObs();
+      logEv('obs_open', {});
+    }
+    function closeObs() { document.getElementById('obs-overlay').style.display = 'none'; }
+
+    function buildObs() {
+      const ev = loadEvents();
+      const prog = loadProgress();
+      const byLesson = {};
+      LESSONS.forEach(l => byLesson[l.id] = { views: 0, runs: 0, checks: 0, passes: 0, fails: 0, hints: 0, solShows: 0, errors: [] });
+      ev.forEach(e => {
+        const b = byLesson[e.lesson]; if (!b) return;
+        if (e.type === 'lesson_open') b.views++;
+        else if (e.type === 'query_run') { b.runs++; }
+        else if (e.type === 'check') { b.checks++; if (e.data.pass) b.passes++; else b.fails++; if (!e.data.pass) b.errors.push({ sql: e.data.sql, reason: e.data.reason, t: e.t }); }
+        else if (e.type === 'hint_open') b.hints++;
+        else if (e.type === 'solution_show') b.solShows++;
+      });
+
+      const totalChecks = ev.filter(e => e.type === 'check').length;
+      const totalPass = ev.filter(e => e.type === 'check' && e.data.pass).length;
+      const totalRuns = ev.filter(e => e.type === 'query_run').length;
+      const totalHints = ev.filter(e => e.type === 'hint_open').length;
+      const totalSols = ev.filter(e => e.type === 'solution_show').length;
+      const totalViews = ev.filter(e => e.type === 'lesson_open').length;
+      const totalTime = Object.values(times).reduce((a, b) => a + b, 0);
+      const done = LESSONS.filter(l => prog[l.id]).length;
+      const successRate = totalChecks ? Math.round(totalPass / totalChecks * 100) : 0;
+
+      let html = '';
+      html += '<div class="obs-cards">';
+      html += card(done + '/' + LESSONS.length, 'Ders tamamlandı');
+      html += card(fmtDur(totalTime), 'Toplam aktif süre');
+      html += card(totalViews, 'Ders görüntülenme');
+      html += card(totalRuns, 'Sorgu çalıştırma');
+      html += card(totalChecks, 'Cevap kontrolü');
+      html += card('%' + successRate, 'Başarı oranı');
+      html += card(totalHints, 'İpucu kullanımı');
+      html += card(totalSols, 'Çözüm gösterme');
+      html += '</div>';
+
+      html += '<div class="obs-sec">Ders bazında detay</div>';
+      html += '<table><tr><th>Ders</th><th>Görüntüleme</th><th>Süre</th><th>Çalıştırma</th><th>Kontrol</th><th>Doğru</th><th>Yanlış</th><th>İpucu</th><th>Çözüm</th><th>Durum</th></tr>';
+      LESSONS.forEach(l => {
+        const b = byLesson[l.id];
+        html += '<tr>'
+          + '<td>' + l.title + '</td>'
+          + '<td>' + b.views + '</td>'
+          + '<td>' + fmtDur(times[l.id] || 0) + '</td>'
+          + '<td>' + b.runs + '</td>'
+          + '<td>' + b.checks + '</td>'
+          + '<td style="color:var(--good)">' + b.passes + '</td>'
+          + '<td style="color:var(--bad)">' + b.fails + '</td>'
+          + '<td>' + (b.hints ? '<b>' + b.hints + '</b>' : '-') + '</td>'
+          + '<td>' + (b.solShows ? '<b style="color:var(--bad)">' + b.solShows + '</b>' : '-') + '</td>'
+          + '<td>' + (prog[l.id] ? '✓' : '·') + '</td>'
+          + '</tr>';
+      });
+      html += '</table>';
+
+      html += '<div class="obs-sec">Yanlış denemeler (neyi yanlış yaptı?)</div>';
+      let anyErr = false;
+      LESSONS.forEach(l => {
+        const b = byLesson[l.id];
+        if (b.errors.length) {
+          anyErr = true;
+          html += '<div style="margin:8px 0 4px;font-weight:600;color:var(--accent2)">' + l.title + ' — ' + b.errors.length + ' yanlış deneme</div>';
+          b.errors.slice(-5).forEach(er => {
+            html += '<div class="obs-err"><b>' + fmtTime(er.t) + '</b><code>' + escapeHtml(er.sql) + '</code><div class="why">▸ ' + escapeHtml(er.reason) + '</div></div>';
+          });
+        }
+      });
+      if (!anyErr) html += '<div style="color:var(--muted);font-size:13px">Henüz yanlış deneme yok. 🎉</div>';
+
+      html += '<div class="obs-sec">Son etkinlik (sayfa hareketleri)</div>';
+      const recent = ev.slice(-80).reverse();
+      const labels = { app_open: 'uygulama açıldı', lesson_open: 'derse girdi', query_open: 'derse girdi', query_run: 'sorgu çalıştırdı', check: 'cevap kontrolü', hint_open: 'ipucu açtı', solution_show: 'çözümü gördü', nav: 'gezinme', theme_toggle: 'tema değişti', schema_toggle: 'şemayı açtı/kapadı', certificate: 'sertifika oluşturdu', obs_open: 'gözlem panelini açtı', easter_egg: 'easter egg!', lesson_passed: 'dersi geçti', all_complete: 'tümünü bitirdi', reset: 'ilerlemeyi sıfırladı' };
+      let tl = '';
+      recent.forEach(e => {
+        const lab = labels[e.type] || e.type;
+        let extra = '';
+        if (e.type === 'nav') extra = ' → ' + (e.data.to + 1) + '. ders (' + (e.data.from || '?') + ')';
+        else if (e.type === 'query_run') extra = e.data.ok ? (' ✓ ' + e.data.rows + ' satır') : (' ✗ hata');
+        else if (e.type === 'check') extra = e.data.pass ? ' ✓ DOĞRU' : ' ✗ yanlış';
+        else if (e.type === 'lesson_open') extra = ' → ' + (e.data.index + 1) + '. ders';
+        tl += '<div style="color:var(--muted)">[' + fmtTime(e.t) + ']</div> <div>' + lab + extra + '</div>';
+      });
+      html += '<div id="obs-timeline">' + (tl || 'henüz etkinlik yok') + '</div>';
+
+      html += '<div class="obs-sec">☁️ Bulut (Rana\'nın uzaktan verisi)</div>';
+      const lastSentTxt = syncState.lastSent ? fmtTime(syncState.lastSent) : 'hiç';
+      const cloudTxt = syncState.cloudOk === null ? 'bilinmiyor' : (syncState.cloudOk ? '<b style="color:var(--good)">gönderildi ✓</b>' : '<b style="color:var(--bad)">ulaşılamadı</b>');
+      html += '<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6">';
+      html += '<div style="margin-bottom:6px">Site Vercel\'da yayındaysa Rana\'nın verileri otomatik buluta gider; sen de aşağıdan <b>Rana\'nın cihazından</b> gelen son durumu yükleyip görürsün. (Bu cihazdan gönderim kapalıdır — veriyi üstüne yazmazsın.)</div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">';
+      html += '<button class="secondary" onclick="loadCloudObs()">🔄 Buluttan yükle (Rana\'nın verisi)</button>';
+      html += '</div>';
+      html += '<div style="color:var(--muted);font-size:12px">Bu cihazın bulut gönderimi: ' + cloudTxt + ' · Son deneme: ' + lastSentTxt + '</div>';
+      html += '<div id="cloud-view" style="margin-top:10px"></div>';
+      html += '</div>';
+
+      html += '<div class="obs-actions">';
+      html += '<button class="secondary" onclick="exportObs()">⬇ Verileri indir (JSON)</button>';
+      html += '<button class="secondary" onclick="copyObs()">📋 Özeti kopyala</button>';
+      html += '<button class="secondary" onclick="clearObs()" style="color:var(--bad)">Verileri sıfırla</button>';
+      html += '</div>';
+
+      document.getElementById('obs-body').innerHTML = html;
+    }
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+    function card(v, l) { return '<div class="obs-card"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>'; }
+    function exportObs() {
+      const data = { exportedAt: new Date().toISOString(), progress: loadProgress(), times, events: loadEvents() };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'rana-sql-gozlem.json'; a.click();
+      logEv('obs_export', {});
+    }
+    function copyObs() {
+      const ev = loadEvents(); const prog = loadProgress();
+      const done = LESSONS.filter(l => prog[l.id]).length;
+      const checks = ev.filter(e => e.type === 'check'); const passes = checks.filter(e => e.data.pass);
+      const summary = 'Rana SQL Gözlem Özeti\n'
+        + 'Ders tamamlandı: ' + done + '/' + LESSONS.length + '\n'
+        + 'Toplam süre: ' + fmtDur(Object.values(times).reduce((a, b) => a + b, 0)) + '\n'
+        + 'Cevap kontrolü: ' + checks.length + ' | Doğru: ' + passes.length + '\n'
+        + 'İpucu kullanımı: ' + ev.filter(e => e.type === 'hint_open').length + '\n'
+        + 'Çözüm gösterme: ' + ev.filter(e => e.type === 'solution_show').length + '\n'
+        + 'Oluşturulma: ' + new Date().toLocaleString('tr-TR');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(summary).then(() => toast('Özet panoya kopyalandı 📋'));
+      } else { toast('Panoya kopyalanamadı, JSON indir kullan.'); }
+    }
+    function clearObs() {
+      if (!confirm('Tüm gözlem verileri silinsin mi? Bu geri alınamaz.')) return;
+      localStorage.removeItem(trackKey); localStorage.removeItem(timesKey);
+      times = {}; buildObs(); toast('Gözlem verileri sıfırlandı.');
+    }
+    /* Dayı: Rana'nın buluttaki verisini çek ve panelde göster */
+    function loadCloudObs() {
+      sessionStorage.setItem('observer', '1'); /* bu cihazdan artık buluta yazma */
+      const el = document.getElementById('cloud-view');
+      if (el) el.innerHTML = '<div style="color:var(--muted);font-size:13px">Yükleniyor…</div>';
+      fetch('api/obs').then(r => r.json()).then(j => {
+        const el2 = document.getElementById('cloud-view');
+        if (!el2) return;
+        if (!j.ok) { el2.innerHTML = '<div style="color:var(--bad);font-size:13px">Veri yok veya site Vercel\'da değil / KV bağlanmamış. (' + escapeHtml(j.reason || j.error || '') + ')</div>'; return; }
+        const d = j.snapshot || {};
+        el2.innerHTML = renderCloudSnapshot(d, j.updates);
+      }).catch(() => { const e = document.getElementById('cloud-view'); if (e) e.innerHTML = '<div style="color:var(--bad);font-size:13px">Buluta ulaşılamadı (site Vercel\'da değil).</div>'; });
+    }
+    function renderCloudSnapshot(d, updates) {
+      const ev = d.events || []; const prog = d.progress || {};
+      const errs = ev.filter(e => e.type === 'check' && e.data && !e.data.pass).slice(-8);
+      const moves = ev.slice(-15).reverse();
+      const labels = { app_open: 'uygulama açıldı', lesson_open: 'derse girdi', query_run: 'sorgu çalıştırdı', check: 'cevap kontrolü', hint_open: 'ipucu açtı', solution_show: 'çözümü gördü', nav: 'gezinme', theme_toggle: 'tema değişti', certificate: 'sertifika', easter_egg: 'easter egg!', lesson_passed: 'dersi geçti', all_complete: 'tümünü bitirdi' };
+      let h = '<div style="border:1px solid var(--good);border-radius:8px;padding:10px;margin-top:6px;background:rgba(62,207,142,.06)">';
+      h += '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Son güncelleme: ' + escapeHtml(d.sentAt || '?') + ' · toplam ' + updates + ' gönderim</div>';
+      h += '<div class="obs-cards" style="margin-bottom:10px">';
+      h += card((d.doneCount || 0) + '/' + (d.total || 0), 'Ders (Rana)');
+      h += card('%' + (d.successRate || 0), 'Başarı oranı');
+      h += card(fmtDur(d.totalTime || 0), 'Toplam süre');
+      h += card(d.totalChecks || 0, 'Kontrol');
+      h += card(d.totalPass || 0, 'Doğru');
+      h += card(d.totalHints || 0, 'İpucu');
+      h += card(d.totalSols || 0, 'Çözüm gösterme');
+      h += '</div>';
+      if (errs.length) {
+        h += '<div style="font-weight:700;color:var(--bad);margin:8px 0 4px;font-size:13px">Rana\'nın yanlış denemeleri</div>';
+        errs.forEach(e => { h += '<div class="obs-err"><code>' + escapeHtml(e.data.sql || '') + '</code><div class="why">▸ ' + escapeHtml(e.data.reason || '') + '</div></div>'; });
+      }
+      h += '<div style="font-weight:700;margin:10px 0 4px;font-size:13px">Son hareketler</div>';
+      h += '<div id="obs-timeline" style="max-height:160px">';
+      moves.forEach(e => { const lab = labels[e.type] || e.type; let x = ''; if (e.type === 'nav' && e.data) x = ' → ' + (e.data.to + 1) + '. ders'; else if (e.type === 'check' && e.data) x = e.data.pass ? ' ✓' : ' ✗'; else if (e.type === 'query_run' && e.data) x = e.data.ok ? ' ✓' : ' ✗'; h += '<div style="color:var(--muted)">[' + escapeHtml((e.t || '').slice(0, 16)) + ']</div> <div>' + lab + x + '</div>'; });
+      h += '</div>';
+      h += '</div>';
+      return h;
+    }
+
+    init();
+  </script>
 </body>
+
 </html>
