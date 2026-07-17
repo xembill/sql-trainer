@@ -1681,17 +1681,72 @@ INSERT INTO flights VALUES
       const d = new Date(t);
       return d.toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
     }
+    let loadedCloudData = null;
+    let activeObsTab = 'local';
+
     function openObs() {
       const ov = document.getElementById('obs-overlay');
       ov.style.display = 'flex';
+      activeObsTab = 'local';
       buildObs();
       logEv('obs_open', {});
     }
     function closeObs() { document.getElementById('obs-overlay').style.display = 'none'; }
 
+    function switchObsTab(tab) {
+      activeObsTab = tab;
+      if (tab === 'cloud' && !loadedCloudData) {
+        loadCloudObs();
+      } else {
+        buildObs();
+      }
+    }
+
+    function loadCloudObs() {
+      sessionStorage.setItem('observer', '1'); /* bu cihazdan artık buluta yazma */
+      const body = document.getElementById('obs-body');
+      
+      let html = '';
+      html += '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">';
+      html += '<button class="secondary" onclick="switchObsTab(\'local\')" style="font-size:13px;padding:6px 12px;">💻 Yerel Veriler (Bu Cihaz)</button>';
+      html += '<button class="" onclick="switchObsTab(\'cloud\')" style="font-size:13px;padding:6px 12px;">☁️ Bulut Verileri (Rana)</button>';
+      html += '</div>';
+      html += '<div style="color:var(--muted);font-size:14px;padding:25px;text-align:center;">☁️ Buluttan veriler alınıyor, lütfen bekleyin...</div>';
+      body.innerHTML = html;
+
+      fetch('api/obs')
+        .then(r => r.json())
+        .then(j => {
+          if (!j.ok) {
+            body.innerHTML = html 
+              + '<div style="color:var(--bad);font-size:14px;padding:20px;text-align:center;">❌ Hata: ' + escapeHtml(j.reason || j.error || 'Veri bulunamadı') + '</div>'
+              + '<div style="text-align:center"><button class="secondary" onclick="loadCloudObs()" style="font-size:12px;padding:6px 12px;">🔄 Yeniden Dene</button></div>';
+            return;
+          }
+          loadedCloudData = j.snapshot || {};
+          loadedCloudData.updates = j.updates || 0;
+          buildObs();
+        })
+        .catch(() => {
+          body.innerHTML = html 
+            + '<div style="color:var(--bad);font-size:14px;padding:20px;text-align:center;">❌ Bulut sunucusuna ulaşılamadı. Sitenin Vercel üzerinde çalıştığından emin olun.</div>'
+            + '<div style="text-align:center"><button class="secondary" onclick="loadCloudObs()" style="font-size:12px;padding:6px 12px;">🔄 Yeniden Dene</button></div>';
+        });
+    }
+
     function buildObs() {
-      const ev = loadEvents();
-      const prog = loadProgress();
+      const isCloud = (activeObsTab === 'cloud');
+      const dataSrc = isCloud ? loadedCloudData : null;
+
+      if (isCloud && !dataSrc) {
+        loadCloudObs();
+        return;
+      }
+
+      const ev = isCloud ? (dataSrc.events || []) : loadEvents();
+      const prog = isCloud ? (dataSrc.progress || {}) : loadProgress();
+      const obsTimes = isCloud ? (dataSrc.times || {}) : times;
+
       const byLesson = {};
       LESSONS.forEach(l => byLesson[l.id] = { views: 0, runs: 0, checks: 0, passes: 0, fails: 0, hints: 0, solShows: 0, errors: [] });
       ev.forEach(e => {
@@ -1709,11 +1764,18 @@ INSERT INTO flights VALUES
       const totalHints = ev.filter(e => e.type === 'hint_open').length;
       const totalSols = ev.filter(e => e.type === 'solution_show').length;
       const totalViews = ev.filter(e => e.type === 'lesson_open').length;
-      const totalTime = Object.values(times).reduce((a, b) => a + b, 0);
+      const totalTime = Object.values(obsTimes).reduce((a, b) => a + b, 0);
       const done = LESSONS.filter(l => prog[l.id]).length;
       const successRate = totalChecks ? Math.round(totalPass / totalChecks * 100) : 0;
 
       let html = '';
+      
+      // Tab Bar
+      html += '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">';
+      html += '<button class="' + (activeObsTab === 'local' ? '' : 'secondary') + '" onclick="switchObsTab(\'local\')" style="font-size:13px;padding:6px 12px;">💻 Yerel Veriler (Bu Cihaz)</button>';
+      html += '<button class="' + (activeObsTab === 'cloud' ? '' : 'secondary') + '" onclick="switchObsTab(\'cloud\')" style="font-size:13px;padding:6px 12px;">☁️ Bulut Verileri (Rana)</button>';
+      html += '</div>';
+
       html += '<div class="obs-cards">';
       html += card(done + '/' + LESSONS.length, 'Ders tamamlandı');
       html += card(fmtDur(totalTime), 'Toplam aktif süre');
@@ -1732,7 +1794,7 @@ INSERT INTO flights VALUES
         html += '<tr>'
           + '<td>' + l.title + '</td>'
           + '<td>' + b.views + '</td>'
-          + '<td>' + fmtDur(times[l.id] || 0) + '</td>'
+          + '<td>' + fmtDur(obsTimes[l.id] || 0) + '</td>'
           + '<td>' + b.runs + '</td>'
           + '<td>' + b.checks + '</td>'
           + '<td style="color:var(--good)">' + b.passes + '</td>'
@@ -1773,94 +1835,86 @@ INSERT INTO flights VALUES
       });
       html += '<div id="obs-timeline">' + (tl || 'henüz etkinlik yok') + '</div>';
 
-      html += '<div class="obs-sec">☁️ Bulut (Rana\'nın uzaktan verisi)</div>';
-      const lastSentTxt = syncState.lastSent ? fmtTime(syncState.lastSent) : 'hiç';
-      const cloudTxt = syncState.cloudOk === null ? 'bilinmiyor' : (syncState.cloudOk ? '<b style="color:var(--good)">gönderildi ✓</b>' : '<b style="color:var(--bad)">ulaşılamadı</b>');
-      html += '<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6">';
-      html += '<div style="margin-bottom:6px">Site Vercel\'da yayındaysa Rana\'nın verileri otomatik buluta gider; sen de aşağıdan <b>Rana\'nın cihazından</b> gelen son durumu yükleyip görürsün. (Bu cihazdan gönderim kapalıdır — veriyi üstüne yazmazsın.)</div>';
-      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">';
-      html += '<button class="secondary" onclick="loadCloudObs()">🔄 Buluttan yükle (Rana\'nın verisi)</button>';
-      html += '</div>';
-      html += '<div style="color:var(--muted);font-size:12px">Bu cihazın bulut gönderimi: ' + cloudTxt + ' · Son deneme: ' + lastSentTxt + '</div>';
-      html += '<div id="cloud-view" style="margin-top:10px"></div>';
-      html += '</div>';
+      if (isCloud) {
+        html += '<div class="obs-sec">☁️ Bulut Bilgileri</div>';
+        const sentTime = dataSrc.sentAt ? fmtTime(dataSrc.sentAt) : '?';
+        html += '<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;margin-bottom:15px">';
+        html += '<div>Rana\'nın cihazından son güncelleme: <b>' + sentTime + '</b></div>';
+        html += '<div>Toplam veritabanı gönderim sayısı: <b>' + (dataSrc.updates || 0) + '</b></div>';
+        html += '<div style="margin-top:8px"><button class="secondary" onclick="loadCloudObs()" style="font-size:12px;padding:6px 12px;">🔄 Buluttan Güncel Veriyi Çek</button></div>';
+        html += '</div>';
+      } else {
+        html += '<div class="obs-sec">☁️ Bulut (Rana\'nın uzaktan verisi)</div>';
+        const lastSentTxt = syncState.lastSent ? fmtTime(syncState.lastSent) : 'hiç';
+        const cloudTxt = syncState.cloudOk === null ? 'bilinmiyor' : (syncState.cloudOk ? '<b style="color:var(--good)">gönderildi ✓</b>' : '<b style="color:var(--bad)">ulaşılamadı</b>');
+        html += '<div style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6">';
+        html += '<div style="margin-bottom:6px">Site Vercel\'da yayındaysa Rana\'nın verileri otomatik buluta gider; sen de yukarıdaki <b>"Bulut Verileri"</b> sekmesinden Rana\'nın son durumunu görebilirsin.</div>';
+        html += '<div style="color:var(--muted);font-size:12px">Bu cihazın bulut gönderimi: ' + cloudTxt + ' · Son deneme: ' + lastSentTxt + '</div>';
+        html += '</div>';
+      }
 
       html += '<div class="obs-actions">';
       html += '<button class="secondary" onclick="exportObs()">⬇ Verileri indir (JSON)</button>';
       html += '<button class="secondary" onclick="copyObs()">📋 Özeti kopyala</button>';
-      html += '<button class="secondary" onclick="clearObs()" style="color:var(--bad)">Verileri sıfırla</button>';
+      if (!isCloud) {
+        html += '<button class="secondary" onclick="clearObs()" style="color:var(--bad)">Verileri sıfırla</button>';
+      }
       html += '</div>';
 
       document.getElementById('obs-body').innerHTML = html;
     }
+
     function escapeHtml(s) { return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
     function card(v, l) { return '<div class="obs-card"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>'; }
+
     function exportObs() {
-      const data = { exportedAt: new Date().toISOString(), progress: loadProgress(), times, events: loadEvents() };
+      const isCloud = (activeObsTab === 'cloud');
+      const dataSrc = isCloud ? loadedCloudData : null;
+      const ev = isCloud ? (dataSrc.events || []) : loadEvents();
+      const prog = isCloud ? (dataSrc.progress || {}) : loadProgress();
+      const obsTimes = isCloud ? (dataSrc.times || {}) : times;
+
+      const data = { 
+        source: isCloud ? 'cloud' : 'local',
+        exportedAt: new Date().toISOString(), 
+        progress: prog, 
+        times: obsTimes, 
+        events: ev 
+      };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = 'rana-sql-gozlem.json'; a.click();
-      logEv('obs_export', {});
+      a.href = URL.createObjectURL(blob); 
+      a.download = isCloud ? 'rana-sql-gozlem-bulut.json' : 'rana-sql-gozlem-yerel.json'; 
+      a.click();
+      logEv('obs_export', { isCloud });
     }
+
     function copyObs() {
-      const ev = loadEvents(); const prog = loadProgress();
+      const isCloud = (activeObsTab === 'cloud');
+      const dataSrc = isCloud ? loadedCloudData : null;
+      const ev = isCloud ? (dataSrc.events || []) : loadEvents();
+      const prog = isCloud ? (dataSrc.progress || {}) : loadProgress();
+      const obsTimes = isCloud ? (dataSrc.times || {}) : times;
+
       const done = LESSONS.filter(l => prog[l.id]).length;
       const checks = ev.filter(e => e.type === 'check'); const passes = checks.filter(e => e.data.pass);
-      const summary = 'Rana SQL Gözlem Özeti\n'
+      const summary = (isCloud ? 'Rana Bulut SQL Gözlem Özeti\n' : 'Rana Yerel SQL Gözlem Özeti\n')
         + 'Ders tamamlandı: ' + done + '/' + LESSONS.length + '\n'
-        + 'Toplam süre: ' + fmtDur(Object.values(times).reduce((a, b) => a + b, 0)) + '\n'
+        + 'Toplam süre: ' + fmtDur(Object.values(obsTimes).reduce((a, b) => a + b, 0)) + '\n'
         + 'Cevap kontrolü: ' + checks.length + ' | Doğru: ' + passes.length + '\n'
         + 'İpucu kullanımı: ' + ev.filter(e => e.type === 'hint_open').length + '\n'
         + 'Çözüm gösterme: ' + ev.filter(e => e.type === 'solution_show').length + '\n'
+        + (isCloud ? ('Bulut Güncelleme: ' + (dataSrc.sentAt ? fmtTime(dataSrc.sentAt) : '?') + '\n') : '')
         + 'Oluşturulma: ' + new Date().toLocaleString('tr-TR');
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(summary).then(() => toast('Özet panoya kopyalandı 📋'));
       } else { toast('Panoya kopyalanamadı, JSON indir kullan.'); }
     }
+
     function clearObs() {
       if (!confirm('Tüm gözlem verileri silinsin mi? Bu geri alınamaz.')) return;
       localStorage.removeItem(trackKey); localStorage.removeItem(timesKey);
       times = {}; buildObs(); toast('Gözlem verileri sıfırlandı.');
-    }
-    /* Dayı: Rana'nın buluttaki verisini çek ve panelde göster */
-    function loadCloudObs() {
-      sessionStorage.setItem('observer', '1'); /* bu cihazdan artık buluta yazma */
-      const el = document.getElementById('cloud-view');
-      if (el) el.innerHTML = '<div style="color:var(--muted);font-size:13px">Yükleniyor…</div>';
-      fetch('api/obs').then(r => r.json()).then(j => {
-        const el2 = document.getElementById('cloud-view');
-        if (!el2) return;
-        if (!j.ok) { el2.innerHTML = '<div style="color:var(--bad);font-size:13px">Veri yok veya site Vercel\'da değil / KV bağlanmamış. (' + escapeHtml(j.reason || j.error || '') + ')</div>'; return; }
-        const d = j.snapshot || {};
-        el2.innerHTML = renderCloudSnapshot(d, j.updates);
-      }).catch(() => { const e = document.getElementById('cloud-view'); if (e) e.innerHTML = '<div style="color:var(--bad);font-size:13px">Buluta ulaşılamadı (site Vercel\'da değil).</div>'; });
-    }
-    function renderCloudSnapshot(d, updates) {
-      const ev = d.events || []; const prog = d.progress || {};
-      const errs = ev.filter(e => e.type === 'check' && e.data && !e.data.pass).slice(-8);
-      const moves = ev.slice(-15).reverse();
-      const labels = { app_open: 'uygulama açıldı', lesson_open: 'derse girdi', query_run: 'sorgu çalıştırdı', check: 'cevap kontrolü', hint_open: 'ipucu açtı', solution_show: 'çözümü gördü', nav: 'gezinme', theme_toggle: 'tema değişti', certificate: 'sertifika', easter_egg: 'easter egg!', lesson_passed: 'dersi geçti', all_complete: 'tümünü bitirdi' };
-      let h = '<div style="border:1px solid var(--good);border-radius:8px;padding:10px;margin-top:6px;background:rgba(62,207,142,.06)">';
-      h += '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Son güncelleme: ' + (d.sentAt ? fmtTime(d.sentAt) : '?') + ' · toplam ' + updates + ' gönderim</div>';
-      h += '<div class="obs-cards" style="margin-bottom:10px">';
-      h += card((d.doneCount || 0) + '/' + (d.total || 0), 'Ders (Rana)');
-      h += card('%' + (d.successRate || 0), 'Başarı oranı');
-      h += card(fmtDur(d.totalTime || 0), 'Toplam süre');
-      h += card(d.totalChecks || 0, 'Kontrol');
-      h += card(d.totalPass || 0, 'Doğru');
-      h += card(d.totalHints || 0, 'İpucu');
-      h += card(d.totalSols || 0, 'Çözüm gösterme');
-      h += '</div>';
-      if (errs.length) {
-        h += '<div style="font-weight:700;color:var(--bad);margin:8px 0 4px;font-size:13px">Rana\'nın yanlış denemeleri</div>';
-        errs.forEach(e => { h += '<div class="obs-err"><code>' + escapeHtml(e.data.sql || '') + '</code><div class="why">▸ ' + escapeHtml(e.data.reason || '') + '</div></div>'; });
-      }
-      h += '<div style="font-weight:700;margin:10px 0 4px;font-size:13px">Son hareketler</div>';
-      h += '<div id="obs-timeline" style="max-height:160px">';
-      moves.forEach(e => { const lab = labels[e.type] || e.type; let x = ''; if (e.type === 'nav' && e.data) x = ' → ' + (e.data.to + 1) + '. ders'; else if (e.type === 'check' && e.data) x = e.data.pass ? ' ✓' : ' ✗'; else if (e.type === 'query_run' && e.data) x = e.data.ok ? ' ✓' : ' ✗'; h += '<div style="color:var(--muted)">[' + (e.t ? fmtTime(e.t) : '?') + ']</div> <div>' + lab + x + '</div>'; });
-      h += '</div>';
-      h += '</div>';
-      return h;
     }
 
     init();
