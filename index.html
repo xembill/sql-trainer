@@ -793,7 +793,11 @@
       <h1><span class="grad">SQL</span> Trainer</h1>
       <p>17 adım · gerçek SQLite tarayıcıda çalışır</p>
     </div>
-    <div id="rana-tag">🐬 Veri Mühendisliği 3. sınıf · Rana için özel</div>
+    <div id="rana-tag" onclick="clickRanaTag()" style="cursor:pointer;" title="Gizemli yunus...">🐬 Seçkin KILINÇ
+      @XemBiLL · Raniko için özel //Dayı version :D
+      <span>değiştirmek için tıkla!</span>
+
+    </div>
     <div id="progress-bar-track">
       <div id="progress-bar-fill"></div>
     </div>
@@ -848,6 +852,19 @@
         <button class="secondary" onclick="checkAnswer()">✓ Cevabı Kontrol Et</button>
         <button class="secondary" onclick="toggleHint()">💡 İpucu</button>
         <button class="secondary" onclick="showSolution()">Çözümü Göster</button>
+        <button class="secondary" onclick="formatEditorQuery()" title="Sorgu biçimini düzenle">🧹 Formatla</button>
+        <button class="secondary" onclick="explainQuery()" title="Sorgu performans planını analiz et">⚡ Analiz Et
+          (Explain)</button>
+        <div class="history-dropdown-container" style="position:relative;display:inline-block;">
+          <button class="secondary" onclick="toggleHistoryDropdown()" id="history-btn">📜 Geçmiş</button>
+          <div id="history-dropdown-menu"
+            style="display:none;position:absolute;bottom:40px;right:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;box-shadow:0 -5px 15px rgba(0,0,0,0.3);z-index:100;min-width:300px;max-height:250px;overflow-y:auto;padding:8px;">
+            <div
+              style="font-size:11px;font-weight:700;color:var(--muted);padding:4px;border-bottom:1px solid var(--border);margin-bottom:6px;">
+              SON ÇALIŞTIRILAN SORGULAR</div>
+            <div id="history-items"></div>
+          </div>
+        </div>
       </div>
       <div id="hint"></div>
 
@@ -1165,6 +1182,17 @@ INSERT INTO flights VALUES
         hint: 'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
         solution: 'SELECT name, category, price, RANK() OVER (PARTITION BY category ORDER BY price DESC) AS price_rank FROM products;',
         ignoreOrder: true
+      },
+      {
+        id: 'sandbox', difficulty: 'advanced', title: '18. SQL Sandbox (Özgür Oyun Alanı)',
+        concept: `<h2>SQL Sandbox</h2>
+    <p>Burası tamamen senin oyun alanın! Herhangi bir test veya görev yok. Mevcut tabloları sorgulayabilir, yeni tablolar oluşturabilir (<code>CREATE TABLE</code>), veri ekleyebilir (<code>INSERT</code>) veya silebilirsin.</p>
+    <p>Veritabanı tarayıcının belleğinde çalışır; sayfayı yenilediğinde orijinal veri tabanı haline geri döner. Yani bozmaktan korkma! 😉</p>`,
+        ranaNote: `<div class="rn-head">💜 Rana'ya Not</div>Veri dünyasını keşfetmenin en iyi yolu denemektir. Aklına gelen her türlü çılgın sorguyu burada dene. Hata yapmaktan asla korkma, veri mühendisleri hata yapa yapa öğrenir!`,
+        task: 'İstediğin SQL sorgusunu yazıp çalıştır. Veritabanını dilediğin gibi kurcala.',
+        hint: 'Örnek: SELECT * FROM products WHERE price > 50;',
+        solution: 'SELECT 1;',
+        ignoreOrder: true
       }
     ];
 
@@ -1224,8 +1252,14 @@ INSERT INTO flights VALUES
         events: ev.slice(-150).map(e => ({ t: new Date(e.t).toISOString(), type: e.type, lesson: e.lesson, data: e.data }))
       };
     }
+    function isLocalhost() {
+      return window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1' ||
+        window.location.protocol === 'file:';
+    }
+
     function syncNow(reason) {
-      if (isObserver()) return false; /* dayı cihazından gönderme */
+      if (isLocalhost() || isObserver()) return false; /* localdeysek veya dayı cihazındaysak buluta gönderme */
       const payload = collectPayload(reason);
       const mark = (ok) => { syncState.lastSent = Date.now(); syncState.count++; syncState.lastReason = reason || ''; syncState.cloudOk = ok; saveSyncState(); };
       try {
@@ -1371,6 +1405,10 @@ INSERT INTO flights VALUES
         localStorage.setItem(firstSeenKey, Date.now().toString());
         toast('Hoş geldin Rana! 🐬 Veri Mühendisliği yolculuğunda seninleyiz. Başlayalım! 💜', 4200);
       }
+
+      // Dev Console Easter Egg for Rana
+      console.log("%c🐬 Hey Rana! SQL dünyasına hoş geldin! 💜", "color:#8b6bff; font-weight:bold; font-size:16px;");
+      console.log("%cVeri Mühendisliği yolculuğunda sana küçük bir dayı sırrı: \n1. Soldaki yunuslu başlığa (Rana için özel olan kısmına) 5 kez üst üste tıklamayı dene!\n2. Ya da SQL editöründe 'SELECT RANA;' sorgusunu çalıştır! 😉🚀", "color:#5b8cff; font-size:13px; font-weight:500; line-height:1.5;");
     }
 
     function buildSidebar() {
@@ -1504,22 +1542,93 @@ INSERT INTO flights VALUES
       pdf.save('sql-trainer-sertifika.pdf');
     }
 
+    let currentSchemaView = 'er';
+    function toggleSchemaView(view) {
+      currentSchemaView = view;
+      buildSchemaBox();
+    }
+
     function buildSchemaBox() {
       const box = document.getElementById('schema-box');
-      box.innerHTML = `
-    <table><tr><th>Tablo</th><th>Sütunlar</th></tr>
-    <tr><td>customers</td><td>customer_id, name, country, signup_date</td></tr>
-    <tr><td>products</td><td>product_id, name, category, price, discount</td></tr>
-    <tr><td>orders</td><td>order_id, customer_id, order_date, status</td></tr>
-    <tr><td>order_items</td><td>order_item_id, order_id, product_id, quantity</td></tr>
-    <tr><td>flights</td><td>flight_id, departure, arrival</td></tr>
-    </table>`;
+      let html = '';
+
+      html += '<div style="display:flex;gap:8px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px;">';
+      html += '<button class="' + (currentSchemaView === 'er' ? '' : 'secondary') + '" onclick="toggleSchemaView(\'er\')" style="font-size:12px;padding:4px 10px;">📊 ER Diyagramı</button>';
+      html += '<button class="' + (currentSchemaView === 'list' ? '' : 'secondary') + '" onclick="toggleSchemaView(\'list\')" style="font-size:12px;padding:4px 10px;">📋 Tablo Listesi</button>';
+      html += '</div>';
+
+      if (currentSchemaView === 'list') {
+        html += `<table><tr><th>Tablo</th><th>Sütunlar</th></tr>
+        <tr><td>customers</td><td>customer_id, name, country, signup_date</td></tr>
+        <tr><td>products</td><td>product_id, name, category, price, discount</td></tr>
+        <tr><td>orders</td><td>order_id, customer_id, order_date, status</td></tr>
+        <tr><td>order_items</td><td>order_item_id, order_id, product_id, quantity</td></tr>
+        <tr><td>flights</td><td>flight_id, departure, arrival</td></tr>
+        </table>`;
+      } else {
+        html += '<div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;padding:10px 0;">';
+
+        // Customers Card
+        html += '<div class="db-table-card" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;min-width:180px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">';
+        html += '<div style="background:var(--accent);color:#fff;padding:6px 12px;font-weight:700;border-top-left-radius:7px;border-top-right-radius:7px;font-size:13px;">👤 customers</div>';
+        html += '<div style="padding:8px;font-size:12.5px;line-height:1.6;">';
+        html += '<div>🔑 <b>customer_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div>name <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>country <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>signup_date <span style="color:var(--muted)">TEXT</span></div>';
+        html += '</div></div>';
+
+        // Orders Card
+        html += '<div class="db-table-card" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;min-width:180px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">';
+        html += '<div style="background:var(--accent);color:#fff;padding:6px 12px;font-weight:700;border-top-left-radius:7px;border-top-right-radius:7px;font-size:13px;">📦 orders</div>';
+        html += '<div style="padding:8px;font-size:12.5px;line-height:1.6;">';
+        html += '<div>🔑 <b>order_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div style="color:var(--accent2)">🔗 <b>customer_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div>order_date <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>status <span style="color:var(--muted)">TEXT</span></div>';
+        html += '</div></div>';
+
+        // Order Items Card
+        html += '<div class="db-table-card" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;min-width:180px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">';
+        html += '<div style="background:var(--accent);color:#fff;padding:6px 12px;font-weight:700;border-top-left-radius:7px;border-top-right-radius:7px;font-size:13px;">🛍️ order_items</div>';
+        html += '<div style="padding:8px;font-size:12.5px;line-height:1.6;">';
+        html += '<div>🔑 <b>order_item_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div style="color:var(--accent2)">🔗 <b>order_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div style="color:var(--accent2)">🔗 <b>product_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div>quantity <span style="color:var(--muted)">INT</span></div>';
+        html += '</div></div>';
+
+        // Products Card
+        html += '<div class="db-table-card" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;min-width:180px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">';
+        html += '<div style="background:var(--accent);color:#fff;padding:6px 12px;font-weight:700;border-top-left-radius:7px;border-top-right-radius:7px;font-size:13px;">🏷️ products</div>';
+        html += '<div style="padding:8px;font-size:12.5px;line-height:1.6;">';
+        html += '<div>🔑 <b>product_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div>name <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>category <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>price <span style="color:var(--muted)">REAL</span></div>';
+        html += '<div>discount <span style="color:var(--muted)">REAL</span></div>';
+        html += '</div></div>';
+
+        // Flights Card
+        html += '<div class="db-table-card" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;min-width:180px;box-shadow:0 4px 6px rgba(0,0,0,0.1);">';
+        html += '<div style="background:var(--accent);color:#fff;padding:6px 12px;font-weight:700;border-top-left-radius:7px;border-top-right-radius:7px;font-size:13px;">✈️ flights</div>';
+        html += '<div style="padding:8px;font-size:12.5px;line-height:1.6;">';
+        html += '<div>🔑 <b>flight_id</b> <span style="color:var(--muted)">INT</span></div>';
+        html += '<div>departure <span style="color:var(--muted)">TEXT</span></div>';
+        html += '<div>arrival <span style="color:var(--muted)">TEXT</span></div>';
+        html += '</div></div>';
+
+        html += '</div>';
+        html += '<div style="font-size:11.5px;color:var(--muted);text-align:center;margin-top:8px;">🔑 Primary Key (Birincil Anahtar) &nbsp;|&nbsp; <span style="color:var(--accent2)">🔗 Foreign Key (Yabancı Anahtar)</span></div>';
+      }
+      box.innerHTML = html;
     }
     function toggleSchema() {
       const box = document.getElementById('schema-box');
       const toggle = document.querySelector('.schema-toggle');
       const show = box.style.display !== 'block';
       box.style.display = show ? 'block' : 'none';
+      if (show) buildSchemaBox();
       toggle.textContent = (show ? '▾' : '▸') + ' örnek veritabanı şemasını göster';
       logEv('schema_toggle', { show });
     }
@@ -1594,6 +1703,20 @@ INSERT INTO flights VALUES
       document.getElementById('verdict').textContent = '';
       const sql = cm.getValue().trim();
       if (!sql) return;
+
+      // Add to query history
+      if (queryHistory[0] !== sql) {
+        queryHistory.unshift(sql);
+        if (queryHistory.length > 25) queryHistory.pop();
+        saveQueryHistory();
+      }
+
+      // Check for SELECT RANA query easter egg
+      const sqlUpper = sql.toUpperCase();
+      if (sqlUpper.includes("SELECT 'RANA'") || sqlUpper.includes("SELECT RANA")) {
+        setTimeout(() => { ranaEgg('konami'); }, 600);
+      }
+
       try {
         const result = execSql(sql);
         renderTable(result);
@@ -1617,6 +1740,22 @@ INSERT INTO flights VALUES
       document.getElementById('err').textContent = '';
       if (!sql) { verdict.className = 'fail'; verdict.textContent = 'Önce bir sorgu yaz.'; return; }
       const lesson = LESSONS[current];
+
+      // Sandbox mode check bypass
+      if (lesson.id === 'sandbox') {
+        let userResult;
+        try {
+          userResult = execSql(sql);
+          renderTable(userResult);
+          verdict.className = 'pass';
+          verdict.textContent = '✓ Sorgu başarıyla çalıştırıldı (Sandbox Modu)!';
+        } catch (e) {
+          verdict.className = 'fail';
+          verdict.textContent = '✗ SQL hatası: ' + e.message;
+        }
+        return;
+      }
+
       let userResult, solResult;
       try {
         userResult = execSql(sql);
@@ -1684,6 +1823,146 @@ INSERT INTO flights VALUES
     let loadedCloudData = null;
     let activeObsTab = 'local';
 
+    let ranaTagClicks = 0;
+    function clickRanaTag() {
+      ranaTagClicks++;
+      if (ranaTagClicks === 5) {
+        ranaTagClicks = 0;
+        ranaEgg('konami');
+      } else {
+        toast('🐬 ' + (5 - ranaTagClicks) + ' tık uzaktasın... 😉');
+      }
+    }
+    let queryHistory = [];
+    try { queryHistory = JSON.parse(localStorage.getItem('sqltrainer_history') || '[]'); } catch (e) { }
+    function saveQueryHistory() { localStorage.setItem('sqltrainer_history', JSON.stringify(queryHistory)); }
+
+    // SQL History helpers
+    function toggleHistoryDropdown() {
+      const menu = document.getElementById('history-dropdown-menu');
+      const show = menu.style.display !== 'block';
+      menu.style.display = show ? 'block' : 'none';
+      if (show) {
+        buildHistoryDropdown();
+      }
+    }
+
+    document.addEventListener('click', function (e) {
+      const container = document.querySelector('.history-dropdown-container');
+      const menu = document.getElementById('history-dropdown-menu');
+      if (container && !container.contains(e.target) && menu) {
+        menu.style.display = 'none';
+      }
+    });
+
+    function buildHistoryDropdown() {
+      const itemsContainer = document.getElementById('history-items');
+      if (!itemsContainer) return;
+
+      if (!queryHistory.length) {
+        itemsContainer.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px;text-align:center;">Henüz geçmiş sorgu yok.</div>';
+        return;
+      }
+
+      let html = '';
+      queryHistory.forEach((q, idx) => {
+        html += '<div class="history-item" onclick="loadHistoryQuery(' + idx + ')" style="padding:6px;border-radius:5px;cursor:pointer;font-family:monospace;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px;border:1px solid transparent;" onmouseover="this.style.background=\'var(--panel2)\';this.style.borderColor=\'var(--border)\'" onmouseout="this.style.background=\'none\';this.style.borderColor=\'transparent\'">';
+        html += escapeHtml(q);
+        html += '</div>';
+      });
+      itemsContainer.innerHTML = html;
+    }
+
+    function loadHistoryQuery(idx) {
+      if (queryHistory[idx]) {
+        cm.setValue(queryHistory[idx]);
+        document.getElementById('history-dropdown-menu').style.display = 'none';
+        toast('Sorgu geçmişten geri yüklendi 📜');
+      }
+    }
+
+    // SQL Formatter helpers
+    function formatEditorQuery() {
+      const sql = cm.getValue();
+      if (!sql.trim()) return;
+      const formatted = formatSQL(sql);
+      cm.setValue(formatted);
+      toast('Sorgu formatlandı 🧹');
+    }
+
+    function formatSQL(sql) {
+      let formatted = sql
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const keywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT JOIN', 'INNER JOIN', 'ON', 'GROUP BY', 'HAVING', 'ORDER BY', 'LIMIT', 'AND', 'OR', 'UNION', 'WITH', 'INSERT INTO', 'VALUES', 'CREATE TABLE', 'UPDATE', 'SET', 'AS'];
+      keywords.forEach(kw => {
+        const rx = new RegExp('\\b' + kw + '\\b', 'gi');
+        formatted = formatted.replace(rx, kw);
+      });
+
+      const breakKeywords = ['FROM', 'WHERE', 'JOIN', 'LEFT JOIN', 'INNER JOIN', 'GROUP BY', 'ORDER BY', 'LIMIT', 'UNION', 'WITH', 'VALUES', 'SET'];
+      breakKeywords.forEach(kw => {
+        const rx = new RegExp('(\\s)(' + kw + ')\\b', 'g');
+        formatted = formatted.replace(rx, '$1\n$2');
+      });
+
+      formatted = formatted.replace(/(\s)(AND|OR)\b/g, '$1\n  $2');
+      return formatted;
+    }
+
+    // EXPLAIN QUERY PLAN analysis helper
+    function explainQuery() {
+      const sql = cm.getValue().trim();
+      if (!sql) { toast('Lütfen önce bir sorgu yazın.'); return; }
+
+      try {
+        const res = db.exec("EXPLAIN QUERY PLAN " + sql);
+        if (!res || !res.length) {
+          toast('Bu sorgu için sorgu planı oluşturulamadı.');
+          return;
+        }
+
+        const cols = res[0].columns;
+        const values = res[0].values;
+
+        let html = '<div class="explain-wrap" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:15px;margin-top:14px;">';
+        html += '<h3 style="margin-top:0;color:var(--accent);display:flex;align-items:center;gap:6px;">⚡ Sorgu Planı Analizi (Explain Query Plan)</h3>';
+        html += '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;">SQLite motorunun bu sorguyu nasıl koşturacağını gösteren yol haritası:</div>';
+
+        html += '<table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:15px;">';
+        html += '<tr style="border-bottom:2px solid var(--border)"><th style="text-align:left;padding:6px;">Detay</th></tr>';
+
+        values.forEach(row => {
+          const detail = row[3];
+          let style = '';
+          let tag = '';
+          if (detail.includes('SCAN TABLE')) {
+            style = 'background:rgba(255, 92, 124, 0.08);color:var(--bad);border-left:4px solid var(--bad);padding:8px;';
+            tag = '<div style="font-weight:700;font-size:11px;margin-bottom:3px;">⚠️ SCAN TABLE (Yavaş)</div><div style="font-size:12px;color:var(--text)">Tablonun tamamı baştan sona taranıyor. Büyük veritabanlarında performans sorunlarına yol açar.</div>';
+          } else if (detail.includes('USING INDEX') || detail.includes('USING COVERING INDEX')) {
+            style = 'background:rgba(62, 207, 142, 0.08);color:var(--good);border-left:4px solid var(--good);padding:8px;';
+            tag = '<div style="font-weight:700;font-size:11px;margin-bottom:3px;">🚀 USING INDEX (Hızlı)</div><div style="font-size:12px;color:var(--text)">Sorgu indeks kullanılarak hızlıca hedef satırlara ulaşıyor.</div>';
+          } else {
+            style = 'border-left:4px solid var(--accent);padding:8px;';
+            tag = `<div style="font-size:12px;color:var(--text)">${escapeHtml(detail)}</div>`;
+          }
+          html += `<tr style="border-bottom:1px solid var(--border)"><td style="${style}">${tag}</td></tr>`;
+        });
+        html += '</table>';
+        html += '</div>';
+
+        document.getElementById('result-table').innerHTML = html;
+        document.getElementById('err').textContent = '';
+        document.getElementById('row-count').textContent = 'Sorgu planı başarıyla çıkarıldı.';
+        logEv('explain_query', { sql: sql.slice(0, 400) });
+      } catch (e) {
+        document.getElementById('err').textContent = String(e);
+        document.getElementById('result-table').innerHTML = '';
+        document.getElementById('row-count').textContent = '';
+      }
+    }
+
     function openObs() {
       const ov = document.getElementById('obs-overlay');
       ov.style.display = 'flex';
@@ -1705,7 +1984,7 @@ INSERT INTO flights VALUES
     function loadCloudObs() {
       sessionStorage.setItem('observer', '1'); /* bu cihazdan artık buluta yazma */
       const body = document.getElementById('obs-body');
-      
+
       let html = '';
       html += '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">';
       html += '<button class="secondary" onclick="switchObsTab(\'local\')" style="font-size:13px;padding:6px 12px;">💻 Yerel Veriler (Bu Cihaz)</button>';
@@ -1718,7 +1997,7 @@ INSERT INTO flights VALUES
         .then(r => r.json())
         .then(j => {
           if (!j.ok) {
-            body.innerHTML = html 
+            body.innerHTML = html
               + '<div style="color:var(--bad);font-size:14px;padding:20px;text-align:center;">❌ Hata: ' + escapeHtml(j.reason || j.error || 'Veri bulunamadı') + '</div>'
               + '<div style="text-align:center"><button class="secondary" onclick="loadCloudObs()" style="font-size:12px;padding:6px 12px;">🔄 Yeniden Dene</button></div>';
             return;
@@ -1728,7 +2007,7 @@ INSERT INTO flights VALUES
           buildObs();
         })
         .catch(() => {
-          body.innerHTML = html 
+          body.innerHTML = html
             + '<div style="color:var(--bad);font-size:14px;padding:20px;text-align:center;">❌ Bulut sunucusuna ulaşılamadı. Sitenin Vercel üzerinde çalıştığından emin olun.</div>'
             + '<div style="text-align:center"><button class="secondary" onclick="loadCloudObs()" style="font-size:12px;padding:6px 12px;">🔄 Yeniden Dene</button></div>';
         });
@@ -1769,7 +2048,7 @@ INSERT INTO flights VALUES
       const successRate = totalChecks ? Math.round(totalPass / totalChecks * 100) : 0;
 
       let html = '';
-      
+
       // Tab Bar
       html += '<div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:12px;">';
       html += '<button class="' + (activeObsTab === 'local' ? '' : 'secondary') + '" onclick="switchObsTab(\'local\')" style="font-size:13px;padding:6px 12px;">💻 Yerel Veriler (Bu Cihaz)</button>';
@@ -1874,17 +2153,17 @@ INSERT INTO flights VALUES
       const prog = isCloud ? (dataSrc.progress || {}) : loadProgress();
       const obsTimes = isCloud ? (dataSrc.times || {}) : times;
 
-      const data = { 
+      const data = {
         source: isCloud ? 'cloud' : 'local',
-        exportedAt: new Date().toISOString(), 
-        progress: prog, 
-        times: obsTimes, 
-        events: ev 
+        exportedAt: new Date().toISOString(),
+        progress: prog,
+        times: obsTimes,
+        events: ev
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); 
-      a.download = isCloud ? 'rana-sql-gozlem-bulut.json' : 'rana-sql-gozlem-yerel.json'; 
+      a.href = URL.createObjectURL(blob);
+      a.download = isCloud ? 'rana-sql-gozlem-bulut.json' : 'rana-sql-gozlem-yerel.json';
       a.click();
       logEv('obs_export', { isCloud });
     }
